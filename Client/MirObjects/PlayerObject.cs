@@ -86,7 +86,7 @@ namespace Client.MirObjects
         public bool ConcentrateInterrupted;
         public bool HasElements;
         public bool ElementCasted;
-        public int ElementEffect;//hold orb count for player(object) load
+        public int ElementEffect;//为玩家（对象）加载持有宝珠数量
         public int ElementsLevel;
         public int ElementOrbMax;
         //Elemental system END
@@ -279,7 +279,7 @@ namespace Client.MirObjects
                     case 4:
                     case 5:
                     case 7:
-                    case 8:                
+                    case 8:
                     case 26:
                     case 28:
                     case 29:
@@ -706,14 +706,14 @@ namespace Client.MirObjects
                 Effects.Add(ShieldEffect = new Effect(Libraries.Magic, 3890, 3, 600, this) { Repeat = true });
             }
 
-            if (WingEffect > 0) //if (WingEffect >= 100)
+            if (WingEffect > 0) //if (WingEffect >= 100)  //翅膀效果
             {
                 switch(WingEffect)
                 {
                     case 4:
                         Effects.Add(new SpecialEffect(Libraries.CHumEffect[4], 0, 20, 3600, this, true, false, 0) { Repeat = true });
                         break;
-                    case 100: //Oma King Robe effect
+                    case 100: //奥马国王长袍效果
                         Effects.Add(new SpecialEffect(Libraries.Effect, 352, 33, 3600, this, true, false, 0) { Repeat = true });
                         break;
                 }
@@ -723,7 +723,7 @@ namespace Client.MirObjects
 
             if (LevelEffects == LevelEffects.None) return;
 
-            //Effects dependant on flags
+            //效果取决于旗帜  翅膀以及人物等级效果显示等
             if (LevelEffects.HasFlag(LevelEffects.BlueDragon))
             {
                 Effects.Add(new SpecialEffect(Libraries.Effect, 1210, 20, 3200, this, true, true, 1) { Repeat = true });
@@ -818,7 +818,7 @@ namespace Client.MirObjects
                 DrawWingFrame = Frame.EffectStart + (Frame.EffectOffSet * (byte)Direction) + EffectFrameIndex;
             }
 
-            #region Moving OffSet
+            #region 移动偏移
 
             switch (CurrentAction)
             {
@@ -918,33 +918,27 @@ namespace Client.MirObjects
             for (int i = 0; i < Effects.Count; i++)
                 Effects[i].Process();
 
-            Color colour = DrawColour;
-            DrawColour = Color.White;
-            if (Poison != PoisonType.None)
+            Color newColour = Poison switch
+
+
             {
+                _ when (Poison & PoisonType.DelayedExplosion) == PoisonType.DelayedExplosion => Color.Orange,
+                _ when (Poison & (PoisonType.Paralysis | PoisonType.LRParalysis)) != 0 => Color.Gray,
+                _ when (Poison & PoisonType.Frozen) == PoisonType.Frozen => Color.Blue,
+                _ when (Poison & PoisonType.Blindness) == PoisonType.Blindness => Color.MediumVioletRed,
+                _ when (Poison & (PoisonType.Stun | PoisonType.Dazed)) != 0 => Color.Yellow,
+                _ when (Poison & PoisonType.Slow) == PoisonType.Slow => Color.Purple,
+                _ when (Poison & PoisonType.Bleeding) == PoisonType.Bleeding => Color.DarkRed,
+                _ when (Poison & PoisonType.Red) == PoisonType.Red => Color.Red,
+                _ when (Poison & PoisonType.Green) == PoisonType.Green => Color.Green,
+                _ => Color.White
+            };
                 
-                if (Poison.HasFlag(PoisonType.Green))
-                    DrawColour = Color.Green;
-                if (Poison.HasFlag(PoisonType.Red))
-                    DrawColour = Color.Red;
-                if (Poison.HasFlag(PoisonType.Bleeding))
-                    DrawColour = Color.DarkRed;
-                if (Poison.HasFlag(PoisonType.Slow))
-                    DrawColour = Color.Purple;
-                if (Poison.HasFlag(PoisonType.Stun) || Poison.HasFlag(PoisonType.Dazed))
-                    DrawColour = Color.Yellow;
-                if (Poison.HasFlag(PoisonType.Blindness))
-                    DrawColour = Color.MediumVioletRed;
-                if (Poison.HasFlag(PoisonType.Frozen))
-                    DrawColour = Color.Blue;
-                if (Poison.HasFlag(PoisonType.Paralysis) || Poison.HasFlag(PoisonType.LRParalysis))
-                    DrawColour = Color.Gray;             
-                if (Poison.HasFlag(PoisonType.DelayedExplosion))
-                    DrawColour = Color.Orange;
+            if (newColour != DrawColour)
+            {
+                DrawColour = newColour;
+                GameScene.Scene.MapControl.TextureValid = false;
             }
-
-
-            if (colour != DrawColour) GameScene.Scene.MapControl.TextureValid = false;
         }
         public virtual void SetAction()
         {
@@ -1721,7 +1715,7 @@ namespace Client.MirObjects
 
                         switch (Spell)
                         {
-                            #region FireBall
+                            #region 火球术
 
                             case Spell.FireBall:
                                 Effects.Add(new Effect(Libraries.Magic, 0, 10, Frame.Count * FrameInterval, this));
@@ -1730,7 +1724,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region Healing
+                            #region 治愈术
 
                             case Spell.Healing:
                                 Effects.Add(new Effect(Libraries.Magic, 200, 10, Frame.Count * FrameInterval, this));
@@ -1739,16 +1733,16 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region HealingRare
+                            #region 治疗术秘籍
 
                             case Spell.HealingRare:
-                                Effects.Add(new Effect(Libraries.Magic, 200, 10, Frame.Count * FrameInterval, this));
+                                Effects.Add(new Effect(Libraries.Magic, 210, 10, Frame.Count * FrameInterval, this));
                                 SoundManager.PlaySound(20000 + 61 * 10); // M61-0
                                 break;
 
                             #endregion
 
-                            #region Repulsion
+                            #region 抗拒火环
 
                             case Spell.Repulsion:
                                 Effects.Add(new Effect(Libraries.Magic, 900, 6, Frame.Count * FrameInterval, this));
@@ -1757,7 +1751,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region ElectricShock
+                            #region 诱惑之光
 
                             case Spell.ElectricShock:
                                 Effects.Add(new Effect(Libraries.Magic, 1560, 10, Frame.Count * FrameInterval, this));
@@ -1766,7 +1760,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region Poisoning
+                            #region 释毒术红
 
                             case Spell.Poisoning:
                                 Effects.Add(new Effect(Libraries.Magic, 600, 10, Frame.Count * FrameInterval, this));
@@ -1775,7 +1769,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region GreatFireBall
+                            #region 大火球
 
                             case Spell.GreatFireBall:
                                 Effects.Add(new Effect(Libraries.Magic, 400, 10, Frame.Count * FrameInterval, this));
@@ -1784,7 +1778,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region GreatFireBallRare
+                            #region 极品大火球
 
                             case Spell.GreatFireBallRare:
                                 GreatFireBallRareStopTime = CMain.Time + 4000;
@@ -1795,7 +1789,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region HellFire
+                            #region 地狱之火
 
                             case Spell.HellFire:
                                 Effects.Add(new Effect(Libraries.Magic, 920, 10, Frame.Count * FrameInterval, this));
@@ -1804,7 +1798,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region ThunderBolt
+                            #region 雷电
 
                             case Spell.ThunderBolt:
                                 Effects.Add(new Effect(Libraries.Magic2, 20, 3, 300, this));
@@ -1812,7 +1806,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region SoulFireBall
+                            #region 灵魂火球
 
                             case Spell.SoulFireBall:
                                 SoundManager.PlaySound(20000 + (ushort)Spell * 10);
@@ -1820,7 +1814,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region SummonSkeleton
+                            #region 召唤骷髅
 
                             case Spell.SummonSkeleton:
                                 Effects.Add(new Effect(Libraries.Magic, 1500, 10, Frame.Count * FrameInterval, this));
@@ -1828,14 +1822,14 @@ namespace Client.MirObjects
                                 break;
 
                             #endregion
-                            #region StormEscape
+                            #region 风暴逃脱
                             case Spell.StormEscape:
                                 Effects.Add(new Effect(Libraries.Magic3, 590, 10, Frame.Count * FrameInterval, this));
                                 SoundManager.PlaySound(20000 + (ushort)Spell * 10);
                                 break;
                             #endregion
 
-                            #region StormEscapeRare
+                            #region 风暴逃脱秘籍
 
                             case Spell.StormEscapeRare:
                                 Effects.Add(new Effect(Libraries.Magic3, 590, 10, Frame.Count * FrameInterval, this));
@@ -1843,7 +1837,7 @@ namespace Client.MirObjects
                                 break;
                             #endregion
 
-                            #region Teleport
+                            #region 传送
 
                             case Spell.Teleport:
                                 Effects.Add(new Effect(Libraries.Magic, 1590, 10, Frame.Count * FrameInterval, this));
@@ -1852,7 +1846,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region Blink
+                            #region 瞬移
 
                             case Spell.Blink:
                                 Effects.Add(new Effect(Libraries.Magic, 1590, 10, Frame.Count * FrameInterval, this));
@@ -1861,7 +1855,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region Hiding
+                            #region 隐身术
 
                             case Spell.Hiding:
                                 Effects.Add(new Effect(Libraries.Magic, 1520, 10, Frame.Count * FrameInterval, this));
@@ -2388,7 +2382,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region HeavenlySword
+                            #region 天剑
 
                             case Spell.HeavenlySword:
                                 Effects.Add(new Effect(Libraries.Magic2, 2230 + ((int)Direction * 10), 8, 800, this));
@@ -2397,7 +2391,7 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region ElementalBarrier
+                            #region 元素屏障
 
                             case Spell.ElementalBarrier:
                                 if (HasElements && !ElementalBarrier)
@@ -2409,13 +2403,13 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region PoisonShot
+                            #region 毒箭射击
                             case Spell.PoisonShot:
                                 Effects.Add(new Effect(Libraries.Magic3, 2300, 8, 1000, this));
                                 break;
                             #endregion
 
-                            #region OneWithNature
+                            #region 自然合一
                             case Spell.OneWithNature:
                                 MapControl.Effects.Add(new Effect(Libraries.Magic3, 2710, 8, 1200, CurrentLocation));
                                 SoundManager.PlaySound(20000 + 139 * 10);
@@ -2432,14 +2426,14 @@ namespace Client.MirObjects
 
                             #endregion
 
-                            #region MeteorShower
+                            #region 流星雨
 
                             case Spell.MeteorShower:
                                 Effects.Add(new Effect(Libraries.Magic, 400, 10, Frame.Count * FrameInterval, this));
                                 SoundManager.PlaySound(20000 + (ushort)Spell.GreatFireBall * 10);
                                 break;
 
-                            #endregion
+                                #endregion
 
                         }
 
@@ -3550,6 +3544,7 @@ namespace Client.MirObjects
                                     case Spell.MeteorStrike:
                                         SoundManager.PlaySound(20000 + (ushort)Spell * 10 + 1);
                                         SoundManager.PlaySound(20000 + (ushort)Spell * 10 + 2);
+                                        //BlizzardFreezeTime = CMain.Time + 3000;
                                         break;
 
                                     #endregion

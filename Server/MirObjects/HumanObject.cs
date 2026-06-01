@@ -1,11 +1,12 @@
-using System.Drawing;
 ﻿using Server.MirDatabase;
 using Server.MirEnvir;
 using Server.MirNetwork;
 using Server.MirObjects.Monsters;
+using System;
+using System.Drawing;
 using System.Numerics;
-using S = ServerPackets;
 using System.Security.Principal;
+using S = ServerPackets;
 
 namespace Server.MirObjects
 {
@@ -17,7 +18,7 @@ namespace Server.MirObjects
         }
 
         public CharacterInfo Info;
-        //public AccountInfo Account;
+        public AccountInfo Account;
         protected MirConnection connection;
         public virtual MirConnection Connection
         {
@@ -27,7 +28,7 @@ namespace Server.MirObjects
         public override string Name
         {
             get { return Info.Name; }
-            set { /*Check if Name exists.*/ }
+            set { /*检查名称是否存在.*/ }
         }
         public override int CurrentMapIndex
         {
@@ -768,7 +769,7 @@ namespace Server.MirObjects
                             DelayedAction action = new DelayedAction(DelayedType.Magic, Envir.Time, poison.Owner, caster.GetMagic(Spell.DelayedExplosion), poison.Value, this.CurrentLocation);
                             CurrentMap.ActionList.Add(action);
                             break;
-                        case ObjectType.Monster://this is in place so it could be used by mobs if one day someone chooses to
+                        case ObjectType.Monster://这样做是为了如果有一天有人选择让怪物使用它，怪物就能够使用。
                             Attacked((MonsterObject)poison.Owner, poison.Value, DefenceType.MAC);
                             break;
                     }
@@ -1257,7 +1258,7 @@ namespace Server.MirObjects
                 case ItemType.缰绳:
                     if (Info.Equipment[(int)EquipmentSlot.坐骑] == null)
                     {
-                        ReceiveChat("与坐骑一起时使用", ChatType.System);
+                        ReceiveChat("与坐骑一起使用", ChatType.System);
                         return false;
                     }
                     break;
@@ -1778,9 +1779,11 @@ namespace Server.MirObjects
             if (AttackSpeed < 550) AttackSpeed = 550;
         }
         public virtual void RefreshGuildBuffs() { }
+
+        public virtual void RefreshMaxExperience() { }
         protected void RefreshLevelStats()
         {
-            MaxExperience = Level < Settings.ExperienceList.Count ? Settings.ExperienceList[Level - 1] : 0;
+            RefreshMaxExperience();
 
             foreach (var stat in Settings.ClassBaseStats[(byte)Class].Stats)
             {
@@ -1990,36 +1993,43 @@ namespace Server.MirObjects
         }
         private void RefreshItemSetStats()
         {
+            bool hasSmashSetBonus = false;     // Flag for Smash set AttackSpeed bonus
+            bool hasPuritySetBonus = false;    // Flag for Purity set Holy bonus
+            bool hasHwanDevilSetBonus = false; // Flag for HwanDevil set Weight bonuses
+
             foreach (var s in ItemSets)
             {
-                if (s.Set == ItemSet.破碎套装)
+                if ((s.Set == ItemSet.破碎套装) && (s.Type.Contains(ItemType.戒指)) && (s.Type.Contains(ItemType.手镯)))
                 {
-                    if (s.Type.Contains(ItemType.项链) && s.Type.Contains(ItemType.戒指) && s.Type.Contains(ItemType.手镯))
-                    {
-                        Stats[Stat.最小攻击] += 1;
-                        Stats[Stat.最大攻击] += 3;
-                    }
-                    if (s.Type.Contains(ItemType.戒指) && s.Type.Contains(ItemType.手镯))
+                    if (!hasSmashSetBonus)
                     {
                         Stats[Stat.攻击速度] += 2;
-                        return;
+                        hasSmashSetBonus = true;
                     }
                 }
 
                 if ((s.Set == ItemSet.灵玉套装) && (s.Type.Contains(ItemType.戒指)) && (s.Type.Contains(ItemType.手镯)))
                 {
-                    Stats[Stat.神圣] += 3;
+                    if (!hasPuritySetBonus)
+                    {
+                        Stats[Stat.神圣] += 3;
+                        hasPuritySetBonus = true;
+                    }
                 }
 
                 if ((s.Set == ItemSet.幻魔石套) && (s.Type.Contains(ItemType.戒指)) && (s.Type.Contains(ItemType.手镯)))
                 {
-                    Stats[Stat.佩戴负重] += 5;
-                    Stats[Stat.背包负重] += 20;
+                    if (!hasHwanDevilSetBonus)
+                    {
+                        Stats[Stat.佩戴负重] += 5;
+                        Stats[Stat.背包负重] += 20;
+                        hasHwanDevilSetBonus = true;
+                    }
                 }
 
                 if ((s.Set == ItemSet.鏃未套装) && (s.Type.Contains(ItemType.项链)) && (s.Type.Contains(ItemType.手镯)))
                 {
-                    Stats[Stat.HP] += 25;
+                  Stats[Stat.HP] += 25;
                 }
 
                 if (s.Set == ItemSet.圣龙套装)
@@ -2604,8 +2614,10 @@ namespace Server.MirObjects
                     }
                 }
                 if (CheckMovement(location)) return false;
-
             }
+            Enqueue(new S.UserLocation { Direction = dir, Location = location });
+            Broadcast(new S.ObjectRun { ObjectID = ObjectID, Direction = dir, Location = location });
+
             if (RidingMount && !Sneaking)
             {
                 DecreaseMountLoyalty(2);
@@ -2644,8 +2656,6 @@ namespace Server.MirObjects
                 ChangeHP(-1);
             }
 
-            Enqueue(new S.UserLocation { Direction = Direction, Location = CurrentLocation });
-            Broadcast(new S.ObjectRun { ObjectID = ObjectID, Direction = Direction, Location = CurrentLocation });
             GetPlayerLocation();
 
             for (int j = 1; j <= steps; j++)
@@ -2659,10 +2669,10 @@ namespace Server.MirObjects
                     SpellObject ob = (SpellObject)cell.Objects[i];
 
                     ob.ProcessSpell(this);
-                    //break;
+                    break; //break;
                 }
             }
-            if (Connection.Account.PlayBgMusic)
+            if (Connection != null && Connection.Account != null && Connection.Account.PlayBgMusic)
             {
                 CheckPlayBgMusic();
             }
@@ -3269,12 +3279,14 @@ namespace Server.MirObjects
                 for (int i = 0; i < cell.Objects.Count; i++)
                 {
                     MapObject ob = cell.Objects[i];
-                    if (ob.Race != ObjectType.Player && ob.Race != ObjectType.Monster) continue;
-                    if (!ob.IsAttackTarget(this)) continue;
+                    if (ob.Race != ObjectType.Player && ob.Race != ObjectType.Monster && ob.Race != ObjectType.Hero)
+                        if (!ob.IsAttackTarget(this)) continue;
 
                     magic = GetMagic(spell);
                     damageFinal = magic.GetDamage(damageBase);
-                    ob.Attacked(this, damageFinal, DefenceType.Agility, false);
+                    ob.Attacked(this, damageFinal,
+                        ob is MonsterObject monster && (monster.Info.AI == 49) ? DefenceType.Repulsion : DefenceType.Agility,
+                        false);
                     break;
                 }
 
@@ -4068,7 +4080,7 @@ namespace Server.MirObjects
                         for (int i = 0; cell.Objects != null && i < cell.Objects.Count; i++)
                         {
                             MapObject ob = cell.Objects[i];
-                            if (ob.Race != ObjectType.Monster && ob.Race != ObjectType.Player) continue;
+                            if (ob.Race != ObjectType.Monster && ob.Race != ObjectType.Player && ob.Race != ObjectType.Hero) continue;
 
                             if (!ob.IsAttackTarget(this) || ob.Level >= Level) continue;
 
@@ -4453,7 +4465,7 @@ namespace Server.MirObjects
                 return;
             }
 
-            if (Pets.Count(x => x.Race == ObjectType.Monster) >= 2) return;
+            if (Pets.Count(x => x.Race == ObjectType.Monster) >= 2) return; //召唤骷髅数量
 
             UserItem item = GetAmulet(1);
             if (item == null) return;
@@ -5041,10 +5053,13 @@ namespace Server.MirObjects
                         {
                             case ObjectType.Monster:
                             case ObjectType.Player:
+                            case ObjectType.Hero:
                                 //Only targets
                                 if (target.IsAttackTarget(this))
                                 {
-                                    if (target.Attacked(this, j <= 1 ? damageFinal : (int)(damageFinal * 0.6), DefenceType.MAC, false) > 0)
+                                    if (target.Attacked(this, j <= 1 ? damageFinal : (int)(damageFinal * 0.6),
+                                        target is MonsterObject monster && (monster.Info.AI == 49) ? DefenceType.Repulsion : DefenceType.MAC,
+                                        false) > 0)
                                         train = true;
                                 }
                                 break;
@@ -5209,11 +5224,13 @@ namespace Server.MirObjects
 
                             if (IsAttackTarget(ob.Caster))
                             {
-                                switch(ob.Spell)
+                                switch (ob.Spell)
                                 {
                                     case Spell.FireWall:
-                                        Attacked((PlayerObject)ob.Caster, ob.Value, DefenceType.MAC, false);
-                                        _blocking = true;
+                                        if (Attacked((PlayerObject)ob.Caster, ob.Value, DefenceType.MAC, false) > 0)
+                                        {
+                                            _blocking = true;
+                                        }
                                         break;
                                 }
                             }
@@ -5827,7 +5844,7 @@ namespace Server.MirObjects
 
             if (target.CurrentLocation.Y < 0 || target.CurrentLocation.Y >= CurrentMap.Height || target.CurrentLocation.X < 0 || target.CurrentLocation.X >= CurrentMap.Height) return;
 
-            if (target.Race != ObjectType.Monster && target.Race != ObjectType.Player) return;
+            if (target.Race != ObjectType.Monster && target.Race != ObjectType.Player && target.Race != ObjectType.Hero) return;
             if (!target.IsAttackTarget(this) || target.Level >= Level) return;
 
             if (Envir.Random.Next(20) >= 6 + magic.Level * 3 + ElementsLevel + Level - target.Level) return;

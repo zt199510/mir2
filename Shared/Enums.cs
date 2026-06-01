@@ -215,7 +215,7 @@ public enum IntelligentCreatureType : byte
     龙宝宝 = 16,
 }
 
-//2 blank mob files
+//2 空白mob文件
 public enum Monster : ushort
 {
     Guard = 0,
@@ -776,7 +776,7 @@ public enum Monster : ushort
     Mon610B = 610,
     //B=Boss D=Door N=Normal P=Peculiar S=Stoned T=Tree
 
-    //Special
+    //特殊类
     EvilMir = 900,
     EvilMirBody = 901,
     DragonStatue = 902,
@@ -784,14 +784,14 @@ public enum Monster : ushort
     HellBomb2 = 904,
     HellBomb3 = 905,
 
-    //Siege
+    //攻城
     Catapult = 940,
     ChariotBallista = 941,
     Ballista = 942,
     Trebuchet = 943,
     CanonTrebuchet = 944,
 
-    //Gates
+    //公会
     SabukGate = 950,
     PalaceWallLeft = 951,
     PalaceWall1 = 952,
@@ -895,11 +895,11 @@ public enum CellAttribute : byte
 
 public enum LightSetting : byte
 {
-    Normal = 0,
-    Dawn = 1,
-    Day = 2,
-    Evening = 3,
-    Night = 4
+    正常 = 0,
+    黎明 = 1,
+    白天 = 2,
+    傍晚 = 3,
+    黑夜 = 4
 }
 
 public enum MirGender : byte
@@ -1504,10 +1504,10 @@ public enum BuffType : byte
     金刚术,
     天上秘术,
 
-    //Monster
-    HornedArcherBuff,
+    //怪物技能
+    HornedArcherBuff = 50,
     ColdArcherBuff,
-    //HornedColdArcherBuff,
+    HornedColdArcherBuff,
     GeneralMeowMeowShield,
     惩戒真言,
     御体之力,

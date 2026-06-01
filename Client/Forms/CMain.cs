@@ -346,7 +346,7 @@ namespace Client
 
         private static bool IsDrawTime()
         {
-            const int TargetUpdates = 1000 / 60; // 60 frames per second
+            const int TargetUpdates = 1000 / 60; // FPS每秒60帧 
 
             if (Time >= _drawTime)
             {
@@ -362,7 +362,7 @@ namespace Client
             {
                 _cleanTime = Time + 1000;
 
-                DXManager.Clean(); // Clean once a second.
+                DXManager.Clean(); // 每秒清理一次。
             }
 
             Network.Process();
@@ -430,37 +430,37 @@ namespace Client
 
                 text += string.Format(", DPS: {0}", DPS);
 
-                text += string.Format(", Time: {0:HH:mm:ss UTC}", Now);
+                text += string.Format(", 时间: {0:HH:mm:ss}", Now);
 
                 if (MirControl.MouseControl is MapControl)
-                    text += string.Format(", Co Ords: {0}", MapControl.MapLocation);
+                    text += string.Format(", 坐标: {0}", MapControl.MapLocation);
 
                 if (MirControl.MouseControl is MirImageControl)
-                    text += string.Format(", Control: {0}", MirControl.MouseControl.GetType().Name);
+                    text += string.Format(", 控制: {0}", MirControl.MouseControl.GetType().Name);
 
                 if (MirScene.ActiveScene is GameScene)
-                    text += string.Format(", Objects: {0}", MapControl.Objects.Count);
+                    text += string.Format(", 物体: {0}", MapControl.Objects.Count);
 
                 if (MirScene.ActiveScene is GameScene && !string.IsNullOrEmpty(DebugText))
-                    text += string.Format(", Debug: {0}", DebugText);
+                    text += string.Format(", 调试: {0}", DebugText);
 
                 if (MirObjects.MapObject.MouseObject != null)
                 {
-                    text += string.Format(", Target: {0}", MirObjects.MapObject.MouseObject.Name);
+                    text += string.Format(", 目标: {0}", MirObjects.MapObject.MouseObject.Name);
                 }
                 else
                 {
-                    text += string.Format(", Target: none");
+                    text += string.Format(", 目标: 无");
                 }
             }
             else
             {
-                text = string.Format("FPS: {0}", FPS);
+                text = string.Format("帕数: {0}", FPS);
             }
 
-            text += string.Format(", Ping: {0}", PingTime);
+            text += string.Format(", 延迟: {0}", PingTime);
 
-            text += string.Format(", Sent: {0}, Received: {1}", Functions.ConvertByteSize(BytesSent), Functions.ConvertByteSize(BytesReceived));
+            text += string.Format(", 发送: {0}, 收到: {1}", Functions.ConvertByteSize(BytesSent), Functions.ConvertByteSize(BytesReceived));
 
             text += string.Format(", TLC: {0}", DXManager.TextureList.Count(x => x.TextureValid));
             text += string.Format(", CLC: {0}", DXManager.ControlList.Count(x => x.IsDisposed == false));
@@ -519,7 +519,7 @@ namespace Client
             {
                 HintBaseLabel = new MirControl
                 {
-                    BackColour = Color.FromArgb(255, 0, 0, 0),
+                    BackColour = Color.FromArgb(255, 0, 0, 0),  //文字提示更接近官方
                     Border = true,
                     DrawControlTexture = true,
                     BorderColour = Color.FromArgb(255, 144, 144, 0),
@@ -575,6 +575,8 @@ namespace Client
 
             Program.Form.FormBorderStyle = Settings.FullScreen ? FormBorderStyle.None : FormBorderStyle.FixedDialog;
 
+            Program.Form.TopMost = Settings.FullScreen;
+
             DXManager.Parameters.Windowed = !Settings.FullScreen;
 
             Program.Form.ClientSize = new Size(Settings.ScreenWidth, Settings.ScreenHeight);
@@ -592,8 +594,8 @@ namespace Client
 
         public void CreateScreenShot()
         {
-            string text = string.Format("[{0} Server {1}] {2} {3:hh\\:mm\\:ss}",
-                Settings.P_ServerName.Length > 0 ? Settings.P_ServerName : "Crystal",
+            string text = string.Format("-服务器:{0} \n-角色:{1} \n-时间:{2}{3:hh\\:mm\\:ss}",
+                Settings.P_ServerName.Length > 0 ? Settings.P_ServerName : "传奇2国际版",
                 MapControl.User != null ? MapControl.User.Name : "",
                 Now.ToShortDateString(),
                 Now.TimeOfDay);
@@ -608,17 +610,19 @@ namespace Client
                 {
                     StringFormat sf = new StringFormat
                     {
-                        LineAlignment = StringAlignment.Center,
-                        Alignment = StringAlignment.Center
+                        LineAlignment = StringAlignment.Near, //Center
+                        Alignment = StringAlignment.Near //
                     };
+                    // 绘制阴影效果（黑色文本）
+                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.Black, new Point(12, 9), sf);
+                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.Black, new Point(13, 8), sf);
+                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.Black, new Point(14, 9), sf);
+                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.Black, new Point(13, 10), sf);
 
-                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.Black, new Point((Settings.ScreenWidth / 2) + 3, 10), sf);
-                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.Black, new Point((Settings.ScreenWidth / 2) + 4, 9), sf);
-                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.Black, new Point((Settings.ScreenWidth / 2) + 5, 10), sf);
-                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.Black, new Point((Settings.ScreenWidth / 2) + 4, 11), sf);
-                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.White, new Point((Settings.ScreenWidth / 2) + 4, 10), sf);//SandyBrown               
+                    // 绘制主体文本（黄色）
+                    graphics.DrawString(text, new Font(Settings.FontName, 9F), Brushes.Yellow, new Point(13, 9), sf);
 
-                    string path = Path.Combine(Application.StartupPath, @"Screenshots\");
+                    string path = Path.Combine(Application.StartupPath, @"游戏截图\"); //创建截图目录
                     if (!Directory.Exists(path))
                         Directory.CreateDirectory(path);
 
@@ -660,7 +664,7 @@ namespace Client
                 Program.Form.CenterToScreen();
         }
 
-        #region ScreenCapture
+        #region 屏幕捕捉停用，为了实现录制功能
 
         //private Bitmap CaptureScreen()
         //{
@@ -669,7 +673,7 @@ namespace Client
 
         #endregion
 
-        #region Idle Check
+        #region 怠速检查
         private static bool AppStillIdle
         {
             get
@@ -698,19 +702,61 @@ namespace Client
 
         private void CMain_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // 检查是否可以关闭窗体
+            if (!CanCloseForm())
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            // 弹出确认对话框
+            DialogResult result = MessageBox.Show(
+                GameLanguage.ExitTip,
+                "确认关闭",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            // 如果用户选择“否”，则取消关闭操作
+            if (result != DialogResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            // 保存设置并释放资源
+            SaveAndReleaseResources();
+        }
+
+        private bool CanCloseForm()
+        {
+            // 条件检查
             if (CMain.Time < GameScene.LogTime && !Settings.UseTestConfig && !GameScene.Observing)
             {
-                GameScene.Scene.ChatDialog.ReceiveChat(string.Format(GameLanguage.CannotLeaveGame, (GameScene.LogTime - CMain.Time) / 1000), ChatType.System);
-                e.Cancel = true;
+                GameScene.Scene.ChatDialog.ReceiveChat(
+                    string.Format(GameLanguage.CannotLeaveGame, (GameScene.LogTime - CMain.Time) / 1000),
+                    ChatType.System
+                );
+                return false; // 不允许关闭
             }
-            else
-            {
-                Settings.Save();
+            return true; // 允许关闭
+        }
 
+        private void SaveAndReleaseResources()
+        {
+            try
+            {
+                // 保存设置
+                Settings.Save();
+            }
+            finally
+            {
+                // 释放资源
                 DXManager.Dispose();
                 SoundManager.Dispose();
             }
         }
+
 
         protected override void WndProc(ref Message m)
         {
@@ -785,7 +831,7 @@ namespace Client
             IntPtr hCurs = LoadCursorFromFile(path);
             if (hCurs == IntPtr.Zero) throw new Win32Exception();
             var curs = new Cursor(hCurs);
-            // Note: force the cursor to own the handle so it gets released properly
+            // 注意：强制光标拥有控制柄，以便正确释放
             //var fi = typeof(Cursor).GetField("ownHandle", BindingFlags.NonPublic | BindingFlags.Instance);
             //fi.SetValue(curs, true);
             return curs;

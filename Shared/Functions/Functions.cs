@@ -470,7 +470,7 @@ public static class Functions
             _tempChunks.Add(originalList);
         else
         {
-            // Determine how many lists are required 
+            // 确定需要多少个列表
             var numberOfLists = (originalList.Count / width);
 
             for (var i = 0; i <= numberOfLists; i++)
@@ -510,5 +510,10 @@ public static class Functions
     public static int Distance(Point p1, Point p2)
     {
         return Math.Abs(p1.X - p2.X) + Math.Abs(p1.Y - p2.Y);
+    }
+
+    public static int MaxDistance(Point currentLocation1, object currentLocation2)
+    {
+        throw new NotImplementedException();
     }
 }

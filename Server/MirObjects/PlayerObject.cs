@@ -1,13 +1,14 @@
-using System.Drawing;
-﻿using C = ClientPackets;
 using Server.MirDatabase;
 using Server.MirEnvir;
 using Server.MirNetwork;
-using S = ServerPackets;
-using System.Text.RegularExpressions;
-using Timer = Server.MirEnvir.Timer;
 using Server.MirObjects.Monsters;
+using System;
+using System.Drawing;
+using System.Text.RegularExpressions;
 using System.Threading;
+﻿using C = ClientPackets;
+using S = ServerPackets;
+using Timer = Server.MirEnvir.Timer;
 
 namespace Server.MirObjects
 {
@@ -1771,7 +1772,7 @@ namespace Server.MirObjects
                     UpdateGMBuff();
                     MessageQueue.Enqueue(string.Format("{0} 现在是游戏管理员身份", Name));
                     ReceiveChat("升级为游戏管理员", ChatType.System);
-                    Envir.RemoveRank(Info);//remove gm chars from ranking to avoid causing bugs in rank list
+                    Envir.RemoveRank(Info);//从排名中删除gm相关字符，以避免在排名列表中显示
                 }
                 else
                 {
@@ -2178,7 +2179,7 @@ namespace Server.MirObjects
                                 hero.Level = level;
                                 hero.LevelUp();
 
-                                ReceiveChat(string.Format("{0}的英雄等级 {1} -> {2}", player.Name, old, hero.Level), ChatType.System);
+                                ReceiveChat(string.Format("{0}的英雄等级 英雄等级由{1}及,变更到->{2}级", player.Name, old, hero.Level), ChatType.System);
                                 MessageQueue.Enqueue(string.Format("游戏管理员:{3} 将玩家{0}的英雄等级由{1}调整到{2}", player.Name, old, hero.Level, Name));
                                 Helpers.ChatSystem.SystemMessage(chatMessage: $"玩家 {player.Name} 的英雄等级已被提升：{old} -> {hero.Level}，操作人：管理员 {Name}");
                                 return;
@@ -2201,7 +2202,7 @@ namespace Server.MirObjects
                                 hero.Level = level;
                                 hero.LevelUp();
 
-                                ReceiveChat(string.Format("{0} {1} -> {2}", GameLanguage.LevelUp, old, hero.Level), ChatType.System);
+                                ReceiveChat(string.Format("{0}的英雄等级 英雄等级由{1}及,变更到->{2}级", GameLanguage.LevelUp, old, hero.Level), ChatType.System);
                                 MessageQueue.Enqueue(string.Format("游戏管理员:{3} 将玩家{0}的英雄等级由{1}调整到{2}", Name, old, hero.Level, Name));
                                 return;
                             }
@@ -3524,6 +3525,9 @@ namespace Server.MirObjects
 
                             if (Account.Gold >= cost)
                             {
+
+                                var sz = Account.ExpandStorage();
+
                                 Account.Gold -= cost;
                                 Account.HasExpandedStorage = true;
 
@@ -3539,7 +3543,7 @@ namespace Server.MirObjects
                                 }
 
                                 Enqueue(new S.LoseGold { Gold = cost });
-                                Enqueue(new S.ResizeStorage { Size = Account.ExpandStorage(), HasExpandedStorage = Account.HasExpandedStorage, ExpiryTime = Account.ExpandedStorageExpiryDate });
+                                Enqueue(new S.ResizeStorage { Size = sz, HasExpandedStorage = Account.HasExpandedStorage, ExpiryTime = Account.ExpandedStorageExpiryDate });
                             }
                             else
                             {
@@ -8397,7 +8401,7 @@ namespace Server.MirObjects
                     Account.Auctions.Remove(auction);
                     Envir.Auctions.Remove(auction);
                     GainGold(gold);
-                    Enqueue(new S.MarketSuccess { Message = string.Format("{0}卖出价格: {1:#,##0}金币 \n收入: {2:#,##0}金币\n佣金: {3:#,##0}金币‎", auction.Item.FriendlyName, cost, gold, cost - gold) });
+                    Enqueue(new S.MarketSuccess { Message = string.Format("{0}卖出价格: {1:#,##0}金币 \n收入: {2:#,##0}金币\n佣金: {3:#,##0}金币", auction.Item.FriendlyName, cost, gold, cost - gold) });
                     MarketSearch(MatchName, MatchType);
                     return;
                 }
@@ -8423,7 +8427,7 @@ namespace Server.MirObjects
             {
                 if (auction.Sold && auction.Expired)
                 {
-                    MessageQueue.Enqueue(string.Format("拍卖已售出且已过期 {0}", Account.AccountID));
+                    MessageQueue.Enqueue(string.Format("已售出和已过期的拍卖 {0}", Account.AccountID));
                     return false;
                 }
 
@@ -8439,7 +8443,7 @@ namespace Server.MirObjects
 
                         if (auction.CurrentBuyerInfo != null)
                         {
-                        string message = string.Format("在对 {0} 的竞拍中已被超越。现退还 {1:#,##0} 金币", auction.Item.FriendlyName, auction.CurrentBid);
+                            string message = string.Format("你在{0}的出价已被超越。已退还{1:#,##0}金币.", auction.Item.FriendlyName, auction.CurrentBid);
 
                             Envir.MailCharacter(auction.CurrentBuyerInfo, gold: auction.CurrentBid, customMessage: message);
                         }
@@ -8461,14 +8465,18 @@ namespace Server.MirObjects
 
                     uint gold = (uint)Math.Max(0, cost - cost * Globals.Commission);
 
+
+
+
+
                     GainGold(gold);
-                Enqueue(new S.MarketSuccess { Message = string.Format("您以 {1:#,##0} 金币的价格出售了 {0}。\n收益：{2:#,##0} 金币。\n佣金：{3:#,##0} 金币", auction.Item.FriendlyName, cost, gold, cost - gold) });
+                    Enqueue(new S.MarketSuccess { Message = string.Format("你以{1:#,##0}金币的价格出售了{0}. \n收益：{2:#,##0} 金币。\n佣金：{3:#,##0} 金币.", auction.Item.FriendlyName, cost, gold, cost - gold) });
                     return true;
                 }
 
                 return false;
-            }
 
+            }
 
             if (Dead)
             {
@@ -9140,14 +9148,14 @@ namespace Server.MirObjects
                 member.Enqueue(new S.ObjectHealth { ObjectID = ObjectID, Percent = PercentHealth, Expire = time });
                 Enqueue(new S.ObjectHealth { ObjectID = member.ObjectID, Percent = member.PercentHealth, Expire = time });
 
-                if (Hero != null)
-                {
-                    member.Enqueue(new S.ObjectHealth { ObjectID = Hero.ObjectID, Percent = Hero.PercentHealth, Expire = time }); // Send Party Leader's HeroHP to Group Members
-                }
-                if (member.Hero != null)
-                {
-                    Enqueue(new S.ObjectHealth { ObjectID = member.Hero.ObjectID, Percent = member.Hero.PercentHealth, Expire = time }); // Send Party Members HeroHP to Leader
-                }
+                //if (Hero != null) //分别是向团队成员发送团队领导者的英雄生命值，以及向领导者发送团队成员的英雄生命值。
+                //{
+                //    member.Enqueue(new S.ObjectHealth { ObjectID = Hero.ObjectID, Percent = Hero.PercentHealth, Expire = time }); // Send Party Leader's HeroHP to Group Members
+                // }
+                // if (member.Hero != null)
+                //{
+                //    Enqueue(new S.ObjectHealth { ObjectID = member.Hero.ObjectID, Percent = member.Hero.PercentHealth, Expire = time }); // Send Party Members HeroHP to Leader
+                //}
 
                 for (int j = 0; j < member.Pets.Count; j++)
                 {
@@ -13185,19 +13193,22 @@ namespace Server.MirObjects
 
         public void GameshopBuy(int GIndex, byte Quantity, int PType)
         {
-            if (Quantity < 1 || Quantity > 99) return;
+            if (Quantity < 1 || Quantity > 99)
+            {
+                MessageQueue.EnqueueDebugging($"{Info.Name} 购买数量不合法: {Quantity}");
+                return;
+            }
 
             List<GameShopItem> shopList = Envir.GameShopList;
             GameShopItem Product = null;
 
-            int purchased;
-            bool stockAvailable = false;
             bool canAfford = false;
             uint CreditCost = 0;
             uint GoldCost = 0;
 
             List<UserItem> mailItems = new List<UserItem>();
 
+            // 查找商品
             for (int i = 0; i < shopList.Count; i++)
             {
                 if (shopList[i].GIndex == GIndex)
@@ -13207,6 +13218,7 @@ namespace Server.MirObjects
                 }
             }
 
+            // 商品不存在
             if (Product == null)
             {
                 ReceiveChat("购买的物品不在商店内", ChatType.System);
@@ -13214,16 +13226,31 @@ namespace Server.MirObjects
                 return;
             }
 
-            if (((decimal)(Quantity * Product.Count) / Product.Info.StackSize) > 5) return;
+            // 检查物品是否为空（防御性编程）
+            if (Product.Info == null)
+            {
+                ReceiveChat("该商品信息异常，请联系管理员", ChatType.System);
+                MessageQueue.EnqueueDebugging($"{Info.Name} 试图购买空物品 GIndex={GIndex}");
+                return;
+            }
 
+            // 检查堆叠限制
+            if (((decimal)(Quantity * Product.Count) / Product.Info.StackSize) > 5)
+            {
+                MessageQueue.EnqueueDebugging($"{Info.Name} 购买数量超出堆叠限制");
+                return;
+            }
+
+            // 检查库存
+            bool stockAvailable = true;
+            int purchased = 0;
             if (Product.Stock != 0)
             {
-
-                if (Product.iStock) //Invididual Stock
+                if (Product.iStock) //个人库存
                 {
                     Info.GSpurchases.TryGetValue(Product.Info.Index, out purchased);
                 }
-                else //Server Stock
+                else //全局库存
                 {
                     Envir.GameshopLog.TryGetValue(Product.Info.Index, out purchased);
                 }
@@ -13236,7 +13263,7 @@ namespace Server.MirObjects
                 {
                     ReceiveChat("购买的商品数量超过了存货数量", ChatType.System);
                     GameShopStock(Product);
-                    MessageQueue.EnqueueDebugging(Info.Name + " 正在尝试购买 " + Product.Info.FriendlyName + " x " + Quantity + " - Stock isn't available.");
+                    MessageQueue.EnqueueDebugging($"{Info.Name} 库存不足: {Product.Info.FriendlyName} x{Quantity}");
                     return;
                 }
             }
@@ -13282,41 +13309,48 @@ namespace Server.MirObjects
             if (canAfford)
             {
                 MessageQueue.EnqueueDebugging(Info.Name + " 正在尝试购买 " + Product.Info.FriendlyName + " x " + Quantity + " - 货币充足");
+
+                // 扣除货币
                 if (PType == 0)
                 {
                     Account.Credit -= CreditCost;
                     Report.CreditChanged(CreditCost, true, Product.Info.FriendlyName);
                     if (CreditCost != 0) Enqueue(new S.LoseCredit { Credit = CreditCost });
-
                 }
-                if (PType == 1)
+                else if (PType == 1) // 修改为else if保持逻辑一致性
                 {
                     Account.Gold -= GoldCost;
                     Report.GoldChanged(GoldCost, true, Product.Info.FriendlyName);
                     if (GoldCost != 0) Enqueue(new S.LoseGold { Gold = GoldCost });
                 }
 
+                // 更新购买记录 - 修复键不一致问题
+                int itemIndex = Product.Info.Index; // 使用一致的键
+
+                // 更新个人库存
                 if (Product.iStock && Product.Stock != 0)
                 {
-                    Info.GSpurchases.TryGetValue(Product.Info.Index, out purchased);
-                    if (purchased == 0)
+                    if (Info.GSpurchases.TryGetValue(itemIndex, out purchased))
                     {
-                        Info.GSpurchases[Product.GIndex] = Quantity;
+                        Info.GSpurchases[itemIndex] = purchased + Quantity;
                     }
                     else
                     {
-                        Info.GSpurchases[Product.GIndex] += Quantity;
+                        Info.GSpurchases.Add(itemIndex, Quantity);
                     }
                 }
 
-                Envir.GameshopLog.TryGetValue(Product.Info.Index, out purchased);
-                if (purchased == 0)
+                // 更新全局库存 - 使用lock保证线程安全
+                lock (Envir.GameshopLog)
                 {
-                    Envir.GameshopLog[Product.GIndex] = Quantity;
-                }
-                else
-                {
-                    Envir.GameshopLog[Product.GIndex] += Quantity;
+                    if (Envir.GameshopLog.TryGetValue(itemIndex, out purchased))
+                    {
+                        Envir.GameshopLog[itemIndex] = purchased + Quantity;
+                    }
+                    else
+                    {
+                        Envir.GameshopLog.Add(itemIndex, Quantity);
+                    }
                 }
 
                 if (Product.Stock != 0) GameShopStock(Product);
@@ -13335,7 +13369,6 @@ namespace Server.MirObjects
                 for (int i = 0; i < Quantity; i++)
                 {
                     UserItem mailItem = Envir.CreateFreshItem(Envir.GetItemInfo(Product.Info.Index));
-
                     mailItems.Add(mailItem);
                 }
             }
@@ -13354,7 +13387,6 @@ namespace Server.MirObjects
                     if (mailItem.Count == 0) break;
 
                     mailItems.Add(mailItem);
-
                 }
             }
 
@@ -13362,13 +13394,13 @@ namespace Server.MirObjects
             {
                 MailID = ++Envir.NextMailID,
                 Sender = "游戏商城",
-                Message = "感谢您从游戏商店购物，随函附上所购买的商品",
+                Message = "感谢您从游戏商店购物，点击接收按钮，已购商品将发送至您的背包。请确保您的背包有足够的空间。",
                 Items = mailItems,
             };
             mail.Send();
 
             MessageQueue.EnqueueDebugging(Info.Name + " 正在尝试购买 " + Product.Info.FriendlyName + " x " + Quantity + " - 购买已发送");
-            ReceiveChat("购买的商品已发送到您的邮箱", ChatType.Hint);
+            ReceiveChat("购买的商品已发送到您的邮箱，请查收。", ChatType.Hint);
         }
 
         public void GetGameShop()

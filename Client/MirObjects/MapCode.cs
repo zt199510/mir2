@@ -145,10 +145,10 @@ namespace Client.MirObjects
         {
             this.FileName = FileName;
 
-            Initiate();
+            initiate();
         }
 
-        private void Initiate()
+        private void initiate()
         {
             if (File.Exists(FileName))
             {
@@ -711,6 +711,9 @@ namespace Client.MirObjects
                         offset += 2;
                         MapCells[x, y].TileAnimationFrames = Bytes[offset++];
                         MapCells[x, y].Light = Bytes[offset++];
+
+                        if (MapCells[x, y].FrontIndex >= 255)
+                            MapCells[x, y].FrontIndex = -1;
 
                         if (MapCells[x, y].Light >= 100 && MapCells[x, y].Light <= 119)
                             MapCells[x, y].FishingCell = true;
