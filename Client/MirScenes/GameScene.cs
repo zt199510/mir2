@@ -736,7 +736,11 @@ namespace Client.MirScenes
                         }
                         lastChangeTime = DateTime.Now;
 
+                        if (CMain.Time > IntelligentCreaturePickupTime)
+                        {
+                            IntelligentCreaturePickupTime = CMain.Time + 200;
                         Network.Enqueue(new C.IntelligentCreaturePickup { MouseMode = false, Location = MapControl.MapLocation });
+                        }
                         break;
                     case KeybindOptions.CreaturePickup:
                         if (DateTime.Now - lastChangeTime < changeCooldown)
@@ -745,7 +749,11 @@ namespace Client.MirScenes
                         }
                         lastChangeTime = DateTime.Now;
 
+                        if (CMain.Time > IntelligentCreaturePickupTime)
+                        {
+                            IntelligentCreaturePickupTime = CMain.Time + 200;
                         Network.Enqueue(new C.IntelligentCreaturePickup { MouseMode = true, Location = MapControl.MapLocation });
+                        }
                         break;
                     case KeybindOptions.ChangeAttackmode:
                         ChangeAttackMode();
@@ -1358,7 +1366,7 @@ namespace Client.MirScenes
             for (int i = 0; i < Scene.SkillBarDialogs.Count; i++)
             {
                 if (i * 2 > Settings.SkillbarLocation.Length) break;
-                if ((Settings.SkillbarLocation[i, 0] > Settings.Resolution - 100) || (Settings.SkillbarLocation[i, 1] > 700)) continue;//in theory you'd want the y coord to be validated based on resolution, but since client only allows for wider screens and not higher :(
+                if ((Settings.SkillbarLocation[i, 0] > Settings.Resolution - 100) || (Settings.SkillbarLocation[i, 1] > 700)) continue;//理论上，您希望y coord根据分辨率进行验证，但由于客户端只允许更宽的屏幕，而不允许更高的屏幕：(
                 Scene.SkillBarDialogs[i].Location = new Point(Settings.SkillbarLocation[i, 0], Settings.SkillbarLocation[i, 1]);
             }
 
@@ -2257,7 +2265,7 @@ namespace Client.MirScenes
 
             if (Settings.DebugMode)
             {
-                ReceiveChat(new S.Chat { Message = "Displacement", Type = ChatType.System });
+                ReceiveChat(new S.Chat { Message = "位移地图无贴图", Type = ChatType.System });
             }
 
             MapControl.RemoveObject(User);
@@ -2545,7 +2553,10 @@ namespace Client.MirScenes
 
             if (!p.Success) return;
 
-            fromCell.Item = null;
+            if (fromCell.Item.Count > 1)
+                fromCell.Item.Count--;
+            else
+                fromCell.Item = null;
 
             switch (p.Grid)
             {
@@ -3211,13 +3222,13 @@ namespace Client.MirScenes
         }
         private void LogOutSuccess(S.LogOutSuccess p)
         {
-            for (int i = 0; i <= 3; i++)//Fix for orbs sound
+            for (int i = 0; i <= 3; i++)//开门动画声音已修复
                 SoundManager.StopSound(20000 + 126 * 10 + 5 + i);
 
             User = null;
-            if (Settings.Resolution != 800) //Default: != 1024
+            if (Settings.Resolution != 1280) //Default: != 1024    观察模式初始分辨率调整
             {
-                CMain.SetResolution(800, 600); //Default: (1024, 768)
+                CMain.SetResolution(1280, 768); //Default: (1024, 768)  观察模式初始分辨率调整
             }
 
             ActiveScene = new SelectScene(p.Characters);
@@ -3232,8 +3243,8 @@ namespace Client.MirScenes
         private void ReturnToLogin(S.ReturnToLogin p)
         {
             User = null;
-            if (Settings.Resolution != 1024)
-                CMain.SetResolution(1024, 768);
+            if (Settings.Resolution != 1280)       //Default: (1024)  观察模注销或者玩家下线后返回人物选择界面分辨率调整
+                CMain.SetResolution(1280, 768);    //Default: (1024, 768)  观察模注销或者玩家下线后返回人物选择界面分辨率调整
 
             ActiveScene = new LoginScene();
             Dispose();
@@ -3245,17 +3256,17 @@ namespace Client.MirScenes
             Lights = p.Lights;
             switch (Lights)
             {
-                case LightSetting.Day:
-                case LightSetting.Normal:
+                case LightSetting.白天:
+                case LightSetting.正常:
                     MiniMapDialog.LightSetting.Index = 2093;
                     break;
-                case LightSetting.Dawn:
+                case LightSetting.黎明:
                     MiniMapDialog.LightSetting.Index = 2095;
                     break;
-                case LightSetting.Evening:
+                case LightSetting.傍晚:
                     MiniMapDialog.LightSetting.Index = 2094;
                     break;
-                case LightSetting.Night:
+                case LightSetting.黑夜:
                     MiniMapDialog.LightSetting.Index = 2092;
                     break;
             }
@@ -3544,7 +3555,7 @@ namespace Client.MirScenes
 
                     switch (p.Type)
                     {
-                        case DamageType.Hit: //add damage level colours
+                        case DamageType.Hit: //添加伤害等级颜色
                             obj.Damages.Add(new Damage(p.Damage.ToString("#,##0"), 1000, obj.Race == ObjectType.Player ? Color.Red : Color.White, 50));
                             break;
                         case DamageType.Miss:
@@ -5991,7 +6002,7 @@ namespace Client.MirScenes
                     MirMessageBox.Show("死亡状态不能使用");
                     break;
                 case 1:
-                    MirMessageBox.Show("完成购买不支持元宝币");
+                    MirMessageBox.Show("完成购买不支持元宝");
                     break;
                 case 2:
                     MirMessageBox.Show("商品已售出");
@@ -6590,7 +6601,7 @@ namespace Client.MirScenes
             {
                 GuildDialog.GuildBuffInfos.Add(p.GuildBuffs[i]);
             }
-            //getting the list of all active/removedbuffs?
+            //获取所有活动/已删除的buff列表？
             for (int i = 0; i < p.ActiveBuffs.Count; i++)
             {
                 //if (p.ActiveBuffs[i].ActiveTimeRemaining > 0)
@@ -6938,7 +6949,7 @@ namespace Client.MirScenes
             inputBox.InputTextBox.Text = GameScene.User.IntelligentCreatures[User.IntelligentCreatures.Count - 1].CustomName;
             inputBox.OKButton.Click += (o1, e1) =>
             {
-                if (IntelligentCreatureDialog.Visible) IntelligentCreatureDialog.Update();//refresh changes
+                if (IntelligentCreatureDialog.Visible) IntelligentCreatureDialog.Update();//刷新更改
                 GameScene.User.IntelligentCreatures[User.IntelligentCreatures.Count - 1].CustomName = inputBox.InputTextBox.Text;
                 Network.Enqueue(new C.UpdateIntelligentCreature { Creature = GameScene.User.IntelligentCreatures[User.IntelligentCreatures.Count - 1] });
                 inputBox.Dispose();
@@ -7491,9 +7502,9 @@ namespace Client.MirScenes
             #endregion
 
             #region DC
-            minValue = realItem.Stats[Stat.MinDC];
-            maxValue = realItem.Stats[Stat.MaxDC];
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.MaxDC] : 0;
+            minValue = realItem.Stats[Stat.最小攻击];
+            maxValue = realItem.Stats[Stat.最大攻击];
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.最大攻击] : 0;
 
             if (minValue > 0 || maxValue > 0 || addValue > 0)
             {
@@ -7520,9 +7531,9 @@ namespace Client.MirScenes
 
             #region MC
 
-            minValue = realItem.Stats[Stat.MinMC];
-            maxValue = realItem.Stats[Stat.MaxMC];
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.MaxMC] : 0;
+            minValue = realItem.Stats[Stat.最小魔法];
+            maxValue = realItem.Stats[Stat.最大魔法];
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.最大魔法] : 0;
 
             if (minValue > 0 || maxValue > 0 || addValue > 0)
             {
@@ -7549,9 +7560,9 @@ namespace Client.MirScenes
 
             #region SC
 
-            minValue = realItem.Stats[Stat.MinSC];
-            maxValue = realItem.Stats[Stat.MaxSC];
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.MaxSC] : 0;
+            minValue = realItem.Stats[Stat.最小道术];
+            maxValue = realItem.Stats[Stat.最大道术];
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.最大道术] : 0;
 
             if (minValue > 0 || maxValue > 0 || addValue > 0)
             {
@@ -7717,9 +7728,9 @@ namespace Client.MirScenes
 
             #region FREEZING
 
-            minValue = realItem.Stats[Stat.冰冻伤害];
+            minValue = realItem.Stats[Stat.冰冻];
             maxValue = 0;
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.冰冻伤害] : 0;
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.冰冻] : 0;
 
             if (minValue > 0 || maxValue > 0 || addValue > 0)
             {
@@ -7747,9 +7758,9 @@ namespace Client.MirScenes
 
             #region POISON
 
-            minValue = realItem.Stats[Stat.毒素伤害];
+            minValue = realItem.Stats[Stat.毒攻];
             maxValue = 0;
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.毒素伤害] : 0;
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.毒攻] : 0;
 
             if (minValue > 0 || maxValue > 0 || addValue > 0)
             {
@@ -7777,9 +7788,9 @@ namespace Client.MirScenes
 
             #region CRITICALRATE / FLEXIBILITY
 
-            minValue = realItem.Stats[Stat.暴击倍率];
+            minValue = realItem.Stats[Stat.暴击率];
             maxValue = 0;
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.暴击倍率] : 0;
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.暴击率] : 0;
 
             if ((minValue > 0 || maxValue > 0 || addValue > 0) && (realItem.Type != ItemType.宝玉神珠))
             {
@@ -7834,7 +7845,7 @@ namespace Client.MirScenes
 
             #region Reflect
 
-            minValue = realItem.Stats[Stat.反弹伤害];
+            minValue = realItem.Stats[Stat.Reflect];
             maxValue = 0;
             addValue = 0;
 
@@ -7859,7 +7870,7 @@ namespace Client.MirScenes
 
             #region Hpdrain
 
-            minValue = realItem.Stats[Stat.吸血数率];
+            minValue = realItem.Stats[Stat.吸血];
             maxValue = 0;
             addValue = 0;
 
@@ -7884,9 +7895,9 @@ namespace Client.MirScenes
 
             #region Exp Rate
 
-            minValue = realItem.Stats[Stat.经验增长数率];
+            minValue = realItem.Stats[Stat.经验率百分比];
             maxValue = 0;
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.经验增长数率] : 0;
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.经验率百分比] : 0;
 
             if (minValue != 0 || maxValue != 0 || addValue != 0)
             {
@@ -7915,9 +7926,9 @@ namespace Client.MirScenes
 
             #region Drop Rate
 
-            minValue = realItem.Stats[Stat.物品掉落数率];
+            minValue = realItem.Stats[Stat.物品爆率百分比];
             maxValue = 0;
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.物品掉落数率] : 0;
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.物品爆率百分比] : 0;
 
             if (minValue != 0 || maxValue != 0 || addValue != 0)
             {
@@ -7946,9 +7957,9 @@ namespace Client.MirScenes
 
             #region Gold Rate
 
-            minValue = realItem.Stats[Stat.金币收益数率];
+            minValue = realItem.Stats[Stat.金币爆率百分比];
             maxValue = 0;
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.金币收益数率] : 0;
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.金币爆率百分比] : 0;
 
             if (minValue != 0 || maxValue != 0 || addValue != 0)
             {
@@ -8065,9 +8076,9 @@ namespace Client.MirScenes
             string text = "";
             #region AC
 
-            minValue = realItem.Stats[Stat.MinAC];
-            maxValue = realItem.Stats[Stat.MaxAC];
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.MaxAC] : 0;
+            minValue = realItem.Stats[Stat.最小防御];
+            maxValue = realItem.Stats[Stat.最大防御];
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.最大防御] : 0;
 
             if (minValue > 0 || maxValue > 0 || addValue > 0)
             {
@@ -8111,9 +8122,9 @@ namespace Client.MirScenes
 
             #region MAC
 
-            minValue = realItem.Stats[Stat.MinMAC];
-            maxValue = realItem.Stats[Stat.MaxMAC];
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.MaxMAC] : 0;
+            minValue = realItem.Stats[Stat.最小魔御];
+            maxValue = realItem.Stats[Stat.最大魔御];
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.最大魔御] : 0;
 
             if (minValue > 0 || maxValue > 0 || addValue > 0)
             {
@@ -8201,7 +8212,7 @@ namespace Client.MirScenes
 
             #region MAXHPRATE
 
-            minValue = realItem.Stats[Stat.生命值数率];
+            minValue = realItem.Stats[Stat.HPRatePercent];
             maxValue = 0;
             addValue = 0;
 
@@ -8226,7 +8237,7 @@ namespace Client.MirScenes
 
             #region MAXMPRATE
 
-            minValue = realItem.Stats[Stat.法力值数率];
+            minValue = realItem.Stats[Stat.MPRatePercent];
             maxValue = 0;
             addValue = 0;
 
@@ -8251,7 +8262,7 @@ namespace Client.MirScenes
 
             #region MAXACRATE
 
-            minValue = realItem.Stats[Stat.最大防御数率];
+            minValue = realItem.Stats[Stat.MaxACRatePercent];
             maxValue = 0;
             addValue = 0;
 
@@ -8276,7 +8287,7 @@ namespace Client.MirScenes
 
             #region MAXMACRATE
 
-            minValue = realItem.Stats[Stat.最大魔御数率];
+            minValue = realItem.Stats[Stat.MaxMACRatePercent];
             maxValue = 0;
             addValue = 0;
 
@@ -8301,9 +8312,9 @@ namespace Client.MirScenes
 
             #region HEALTH_RECOVERY
 
-            minValue = realItem.Stats[Stat.生命恢复];
+            minValue = realItem.Stats[Stat.体力恢复];
             maxValue = 0;
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.生命恢复] : 0;
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.体力恢复] : 0;
 
             if (minValue > 0 || maxValue > 0 || addValue > 0)
             {
@@ -8434,9 +8445,9 @@ namespace Client.MirScenes
 
             #region POISON_RESIST
 
-            minValue = realItem.Stats[Stat.毒物躲避];
+            minValue = realItem.Stats[Stat.毒药抵抗];
             maxValue = 0;
-            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.毒物躲避] : 0;
+            addValue = (!hideAdded && (!HoverItem.Info.NeedIdentify || HoverItem.Identified)) ? HoverItem.AddedStats[Stat.毒药抵抗] : 0;
 
             if (minValue > 0 || maxValue > 0 || addValue > 0)
             {
@@ -8493,7 +8504,7 @@ namespace Client.MirScenes
 
             #region MAX_DC_RATE
 
-            minValue = realItem.Stats[Stat.最大物理攻击数率];
+            minValue = realItem.Stats[Stat.MaxDCRatePercent];
             maxValue = 0;
             addValue = 0;
 
@@ -8517,7 +8528,7 @@ namespace Client.MirScenes
 
             #region MAX_MC_RATE
 
-            minValue = realItem.Stats[Stat.最大魔法攻击数率];
+            minValue = realItem.Stats[Stat.MaxMCRatePercent];
             maxValue = 0;
             addValue = 0;
 
@@ -8541,7 +8552,7 @@ namespace Client.MirScenes
 
             #region MAX_SC_RATE
 
-            minValue = realItem.Stats[Stat.最大道术攻击数率];
+            minValue = realItem.Stats[Stat.MaxSCRatePercent];
             maxValue = 0;
             addValue = 0;
 
@@ -8565,7 +8576,7 @@ namespace Client.MirScenes
 
             #region DAMAGE_REDUCTION
 
-            minValue = realItem.Stats[Stat.伤害降低数率];
+            minValue = realItem.Stats[Stat.伤害减少百分比];
             maxValue = 0;
             addValue = 0;
 
@@ -8628,7 +8639,7 @@ namespace Client.MirScenes
 
             #region HANDWEIGHT
 
-            minValue = realItem.Stats[Stat.腕力负重];
+            minValue = realItem.Stats[Stat.手腕负重];
             maxValue = 0;
             addValue = 0;
 
@@ -8654,7 +8665,7 @@ namespace Client.MirScenes
 
             #region WEARWEIGHT
 
-            minValue = realItem.Stats[Stat.装备负重];
+            minValue = realItem.Stats[Stat.佩戴负重];
             maxValue = 0;
             addValue = 0;
 
@@ -9007,27 +9018,27 @@ namespace Client.MirScenes
                         break;
                     case RequiredType.MaxAC:
                         text = string.Format("需要物理防御{0}", realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MaxAC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最大防御] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     case RequiredType.MaxMAC:
                         text = string.Format("需要魔法防御{0}", realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MaxMAC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最大魔御] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     case RequiredType.MaxDC:
                         text = string.Format(GameLanguage.RequiredDC, realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MaxDC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最大攻击] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     case RequiredType.MaxMC:
                         text = string.Format(GameLanguage.RequiredMC, realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MaxMC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最大魔法] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     case RequiredType.MaxSC:
                         text = string.Format(GameLanguage.RequiredSC, realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MaxSC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最大道术] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     case RequiredType.MaxLevel:
@@ -9037,27 +9048,27 @@ namespace Client.MirScenes
                         break;
                     case RequiredType.MinAC:
                         text = string.Format("需要物理防御 : {0}", realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MinAC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最小防御] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     case RequiredType.MinMAC:
                         text = string.Format("需要魔法防御 : {0}", realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MinMAC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最小魔御] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     case RequiredType.MinDC:
                         text = string.Format("需要物理攻击 : {0}", realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MinDC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最小攻击] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     case RequiredType.MinMC:
                         text = string.Format("需要魔法攻击 : {0}", realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MinMC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最小魔法] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     case RequiredType.MinSC:
                         text = string.Format("需要道术攻击 : {0}", realItem.RequiredAmount);
-                        if (MapObject.User.Stats[Stat.MinSC] < realItem.RequiredAmount)
+                        if (MapObject.User.Stats[Stat.最小道术] < realItem.RequiredAmount)
                             colour = Color.Red;
                         break;
                     default:
@@ -10967,9 +10978,9 @@ namespace Client.MirScenes
 
             //Render Death, 
 
-            LightSetting setting = Lights == LightSetting.Normal ? GameScene.Scene.Lights : Lights;
+            LightSetting setting = Lights == LightSetting.正常 ? GameScene.Scene.Lights : Lights;
 
-            if (setting != LightSetting.Day || GameScene.User.Poison.HasFlag(PoisonType.Blindness))
+            if (setting != LightSetting.白天 || GameScene.User.Poison.HasFlag(PoisonType.Blindness))
             {
                 DrawLights(setting);
             }
@@ -11081,19 +11092,19 @@ namespace Client.MirScenes
             {
                 if (y <= 0) continue;
                 if (y >= Height) break;
-                drawY = (y - User.Movement.Y + OffSetY) * CellHeight + User.OffSetMove.Y; //Moving OffSet
+                drawY = (y - User.Movement.Y + OffSetY) * CellHeight + User.OffSetMove.Y; //移动偏移
 
                 for (int x = User.Movement.X - ViewRangeX; x <= User.Movement.X + ViewRangeX; x++)
                 {
                     if (x < 0) continue;
                     if (x >= Width) break;
-                    drawX = (x - User.Movement.X + OffSetX) * CellWidth - OffSetX + User.OffSetMove.X; //Moving OffSet
+                    drawX = (x - User.Movement.X + OffSetX) * CellWidth - OffSetX + User.OffSetMove.X; //移动偏移
 
                     index = M2CellInfo[x, y].MiddleImage - 1;
 
                     if ((index < 0) || (M2CellInfo[x, y].MiddleIndex == -1)) continue;
-                    if (M2CellInfo[x, y].MiddleIndex >= 0)    //M2P '> 199' changed to '>= 0' to include mir2 libraries. Fixes middle layer tile strips draw. Also changed in 'Draw mir3 middle layer' bellow.
-                    {//mir3 mid layer is same level as front layer not real middle + it cant draw index -1 so 2 birds in one stone :p
+                    if (M2CellInfo[x, y].MiddleIndex >= 0)    //M2P '> 199' changed to '>= 0' 包括mir2库。修复中间层瓷砖条的绘制。下面的“绘制mir3中间层”也发生了变化.
+                    {//mir3中间层与前层相同，不是真正的中间层+它不能绘制索引-1，所以一箭双雕：p
                         Size s = Libraries.MapLibs[M2CellInfo[x, y].MiddleIndex].GetSize(index);
 
                         if ((s.Width != CellWidth || s.Height != CellHeight) &&
@@ -11208,7 +11219,7 @@ namespace Client.MirScenes
                     byte animation;
                     bool blend;
                     Size s;
-                    #region Draw shanda's tile animation layer
+                    #region 绘制盛大的瓷砖动画层
                     index = M2CellInfo[x, y].TileAnimationImage;
                     animation = M2CellInfo[x, y].TileAnimationFrames;
                     if ((index > 0) & (animation > 0))
@@ -11221,7 +11232,7 @@ namespace Client.MirScenes
 
                     #endregion
 
-                    #region Draw mir3 middle layer
+                    #region 绘制mir3中间层
                     if ((M2CellInfo[x, y].MiddleIndex >= 0) && (M2CellInfo[x, y].MiddleIndex != -1))   //M2P '> 199' changed to '>= 0' to include mir2 libraries. Fixes middle layer tile strips draw. Also changed in 'DrawFloor' above.
                     {
                         index = M2CellInfo[x, y].MiddleImage - 1;
@@ -11260,7 +11271,7 @@ namespace Client.MirScenes
                     }
                     #endregion
 
-                    #region Draw front layer
+                    #region 绘制前层
                     index = (M2CellInfo[x, y].FrontImage & 0x7FFF) - 1;
                     backIndex = (M2CellInfo[x, y].BackImage & 0x7FFF) - 1;
 
@@ -11328,7 +11339,7 @@ namespace Client.MirScenes
 
                     if (blend)
                     {
-                        if (fileIndex > 0 && fileIndex < 199)
+                        if (fileIndex == 14 || fileIndex == 27 || (fileIndex > 99 & fileIndex < 199))
                         {
                             Libraries.MapLibs[fileIndex].DrawBlend(index, new Point(drawX, drawY - (3 * CellHeight)), Color.White, true, 1.0f);
                         }
@@ -11457,12 +11468,12 @@ namespace Client.MirScenes
             Surface oldSurface = DXManager.CurrentSurface;
             DXManager.SetSurface(DXManager.LightSurface);
 
-            #region Night Lights
+            #region 地图白天黑夜光照度
             Color darkness;
 
             switch (setting)
             {
-                case LightSetting.Night:
+                case LightSetting.黑夜:
                     {
                         switch (MapDarkLight)
                         {
@@ -11484,12 +11495,14 @@ namespace Client.MirScenes
                         }
                     }
                     break;
-                case LightSetting.Evening:
-                case LightSetting.Dawn:
-                    darkness = Color.FromArgb(255, 50, 50, 50);
+                case LightSetting.傍晚:
+                    darkness = Color.FromArgb(255, 0, 206, 209);//(255, 50, 50, 50);
+                    break;
+                case LightSetting.黎明:
+                    darkness = Color.FromArgb(255, 135, 206, 250);
                     break;
                 default:
-                case LightSetting.Day:
+                case LightSetting.白天:
                     darkness = Color.FromArgb(255, 255, 255, 255);
                     break;
             }
@@ -11509,7 +11522,7 @@ namespace Client.MirScenes
             DXManager.Device.SetRenderState(RenderState.SourceBlend, Blend.SourceAlpha);
             DXManager.Device.SetRenderState(RenderState.DestinationBlend, Blend.One);
 
-            #region Object Lights (Player/Mob/NPC)
+            #region 对象灯（玩家/怪物/NPC）
             for (int i = 0; i < Objects.Count; i++)
             {
                 MapObject ob = Objects[i];
@@ -11529,19 +11542,37 @@ namespace Client.MirScenes
                     {
                         switch (light / 15)
                         {
-                            case 0://no light source
+                            case 0://无光源
                                 lightColour = Color.FromArgb(255, 60, 60, 60);
                                 break;
-                            case 1:
+                            case 1://蜡烛
                                 lightColour = Color.FromArgb(255, 120, 120, 120);
                                 break;
-                            case 2://Candle
+                            case 2://火把
                                 lightColour = Color.FromArgb(255, 180, 180, 180);
                                 break;
-                            case 3://Torch
+                            case 3://火炬
                                 lightColour = Color.FromArgb(255, 240, 240, 240);
                                 break;
-                            default://Peddler Torch
+                            case 4://灯笼
+                                lightColour = Color.FromArgb(255, 255, 99, 71);
+                                break;
+                            case 5://粉火把
+                                lightColour = Color.FromArgb(255, 255, 105, 180);
+                                break;
+                            case 6://黄火把
+                                lightColour = Color.FromArgb(255, 154, 205, 50);
+                                break;
+                            case 7://绿火把
+                                lightColour = Color.FromArgb(255, 32, 178, 170);
+                                break;
+                            case 8://蓝火把
+                                lightColour = Color.FromArgb(255, 65, 105, 225);
+                                break;
+                            case 9://红火把
+                                lightColour = Color.FromArgb(255, 139, 0, 0);
+                                break;
+                            default://其他更亮的光源
                                 lightColour = Color.FromArgb(255, 255, 255, 255);
                                 break;
                         }
@@ -12222,15 +12253,15 @@ namespace Client.MirScenes
 
             if (magic.Spell == Spell.Teleport || magic.Spell == Spell.Blink || magic.Spell == Spell.StormEscape || magic.Spell == Spell.StormEscapeRare)
             {
-                if (actor.Stats[Stat.传送技法力消耗数率] > 0)
+                if (actor.Stats[Stat.TeleportManaPenaltyPercent] > 0)
                 {
-                    cost += (cost * actor.Stats[Stat.传送技法力消耗数率]) / 100;
+                    cost += (cost * actor.Stats[Stat.TeleportManaPenaltyPercent]) / 100;
                 }
             }
 
-            if (actor.Stats[Stat.法力值消耗数率] > 0)
+            if (actor.Stats[Stat.ManaPenaltyPercent] > 0)
             {
-                cost += (cost * actor.Stats[Stat.法力值消耗数率]) / 100;
+                cost += (cost * actor.Stats[Stat.ManaPenaltyPercent]) / 100;
             }
 
             if (cost > actor.MP)

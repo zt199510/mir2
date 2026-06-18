@@ -1,13 +1,14 @@
-using System.Drawing;
-﻿using C = ClientPackets;
 using Server.MirDatabase;
 using Server.MirEnvir;
 using Server.MirNetwork;
-using S = ServerPackets;
-using System.Text.RegularExpressions;
-using Timer = Server.MirEnvir.Timer;
 using Server.MirObjects.Monsters;
+using System;
+using System.Drawing;
+using System.Text.RegularExpressions;
 using System.Threading;
+﻿using C = ClientPackets;
+using S = ServerPackets;
+using Timer = Server.MirEnvir.Timer;
 
 namespace Server.MirObjects
 {
@@ -59,8 +60,8 @@ namespace Server.MirObjects
         {
             get { return account; }
             set { account = value; }
-        }       
-        
+        }
+
         public override bool CanMove
         {
             get
@@ -193,6 +194,11 @@ namespace Server.MirObjects
         public List<int> CompletedQuests
         {
             get { return Info.CompletedQuests; }
+        }
+        public List<string> NoPickList//不回收列表
+        {
+            get { return Info.NoPickList; }
+            set { Info.NoPickList = value; }
         }
 
         public PlayerObject() { }
@@ -823,7 +829,7 @@ namespace Server.MirObjects
                     PlayerObject loverPlayer = Envir.GetPlayer(lover.Name);
                     if (loverPlayer != null && loverPlayer.CurrentMap == CurrentMap && Functions.InRange(loverPlayer.CurrentLocation, CurrentLocation, Globals.DataRange) && !loverPlayer.Dead)
                     {
-                        amount += (uint)Math.Max(0, (amount * Stats[Stat.伴侣专享经验数率]) / 100);
+                        amount += (uint)Math.Max(0, (amount * Stats[Stat.LoverExpRatePercent]) / 100);
                     }
                 }
             }
@@ -837,14 +843,14 @@ namespace Server.MirObjects
                     if (mentorPlayer != null && mentorPlayer.CurrentMap == CurrentMap && Functions.InRange(mentorPlayer.CurrentLocation, CurrentLocation, Globals.DataRange) && !mentorPlayer.Dead)
                     {
                         if (GroupMembers != null && GroupMembers.Contains(mentorPlayer))
-                            amount += (uint)Math.Max(0, (amount * Stats[Stat.师徒专享经验数率]) / 100);
+                            amount += (uint)Math.Max(0, (amount * Stats[Stat.MentorExpRatePercent]) / 100);
                     }
                 }
             }
 
-            if (Stats[Stat.经验增长数率] > 0)
+            if (Stats[Stat.经验率百分比] > 0)
             {
-                amount += (uint)Math.Max(0, (amount * Stats[Stat.经验增长数率]) / 100);
+                amount += (uint)Math.Max(0, (amount * Stats[Stat.经验率百分比]) / 100);
             }
 
             if (Info.Mentor != 0 && !Info.IsMentor)
@@ -1169,6 +1175,7 @@ namespace Server.MirObjects
 
             SendBaseStats();
             GetObjectsPassive();
+            Enqueue(new S.NoPickList() { Items = NoPickList });
             Enqueue(new S.TimeOfDay { Lights = Envir.Lights });
             Enqueue(new S.ChangeAMode { Mode = AMode });
             Enqueue(new S.ChangePMode { Mode = PMode });
@@ -1327,7 +1334,7 @@ namespace Server.MirObjects
 
                 if (duration > maxDuration) duration = maxDuration;
 
-                AddBuff(BuffType.精力充沛, this, duration, new Stats { [Stat.经验增长数率] = Settings.RestedExpBonus });
+                AddBuff(BuffType.精力充沛, this, duration, new Stats { [Stat.经验率百分比] = Settings.RestedExpBonus });
 
                 _restedCounter = 0;
             }
@@ -1765,7 +1772,7 @@ namespace Server.MirObjects
                     UpdateGMBuff();
                     MessageQueue.Enqueue(string.Format("{0} 现在是游戏管理员身份", Name));
                     ReceiveChat("升级为游戏管理员", ChatType.System);
-                    Envir.RemoveRank(Info);//remove gm chars from ranking to avoid causing bugs in rank list
+                    Envir.RemoveRank(Info);//从排名中删除gm相关字符，以避免在排名列表中显示
                 }
                 else
                 {
@@ -2172,7 +2179,7 @@ namespace Server.MirObjects
                                 hero.Level = level;
                                 hero.LevelUp();
 
-                                ReceiveChat(string.Format("{0}的英雄等级 {1} -> {2}", player.Name, old, hero.Level), ChatType.System);
+                                ReceiveChat(string.Format("{0}的英雄等级 英雄等级由{1}及,变更到->{2}级", player.Name, old, hero.Level), ChatType.System);
                                 MessageQueue.Enqueue(string.Format("游戏管理员:{3} 将玩家{0}的英雄等级由{1}调整到{2}", player.Name, old, hero.Level, Name));
                                 Helpers.ChatSystem.SystemMessage(chatMessage: $"玩家 {player.Name} 的英雄等级已被提升：{old} -> {hero.Level}，操作人：管理员 {Name}");
                                 return;
@@ -2195,7 +2202,7 @@ namespace Server.MirObjects
                                 hero.Level = level;
                                 hero.LevelUp();
 
-                                ReceiveChat(string.Format("{0} {1} -> {2}", GameLanguage.LevelUp, old, hero.Level), ChatType.System);
+                                ReceiveChat(string.Format("{0}的英雄等级 英雄等级由{1}及,变更到->{2}级", GameLanguage.LevelUp, old, hero.Level), ChatType.System);
                                 MessageQueue.Enqueue(string.Format("游戏管理员:{3} 将玩家{0}的英雄等级由{1}调整到{2}", Name, old, hero.Level, Name));
                                 return;
                             }
@@ -3518,6 +3525,9 @@ namespace Server.MirObjects
 
                             if (Account.Gold >= cost)
                             {
+
+                                var sz = Account.ExpandStorage();
+
                                 Account.Gold -= cost;
                                 Account.HasExpandedStorage = true;
 
@@ -3533,7 +3543,7 @@ namespace Server.MirObjects
                                 }
 
                                 Enqueue(new S.LoseGold { Gold = cost });
-                                Enqueue(new S.ResizeStorage { Size = Account.ExpandStorage(), HasExpandedStorage = Account.HasExpandedStorage, ExpiryTime = Account.ExpandedStorageExpiryDate });
+                                Enqueue(new S.ResizeStorage { Size = sz, HasExpandedStorage = Account.HasExpandedStorage, ExpiryTime = Account.ExpandedStorageExpiryDate });
                             }
                             else
                             {
@@ -3553,19 +3563,19 @@ namespace Server.MirObjects
                                 switch (Class)
                                 {
                                     case MirClass.战士:
-                                        AddBuff(BuffType.英雄灵气, this, 0, new Stats { [Stat.HP] = 300, [Stat.物品掉落数率] = 5 });
+                                        AddBuff(BuffType.英雄灵气, this, 0, new Stats { [Stat.HP] = 300, [Stat.物品爆率百分比] = 5 });
                                         break;
                                     case MirClass.法师:
-                                        AddBuff(BuffType.英雄灵气, this, 0, new Stats { [Stat.MP] = 300, [Stat.经验增长数率] = 5 });
+                                        AddBuff(BuffType.英雄灵气, this, 0, new Stats { [Stat.MP] = 300, [Stat.经验率百分比] = 5 });
                                         break;
                                     case MirClass.道士:
-                                        AddBuff(BuffType.英雄灵气, this, 0, new Stats { [Stat.生命恢复] = 2, [Stat.攻击增伤] = 3 });
+                                        AddBuff(BuffType.英雄灵气, this, 0, new Stats { [Stat.体力恢复] = 2, [Stat.功力] = 3 });
                                         break;
                                     case MirClass.刺客:
                                         AddBuff(BuffType.英雄灵气, this, 0, new Stats { [Stat.法力恢复] = 2, [Stat.准确] = 3 });
                                         break;
                                     case MirClass.弓箭:
-                                        AddBuff(BuffType.英雄灵气, this, 0, new Stats { [Stat.敏捷] = 2, [Stat.最大物理攻击数率] = 2, [Stat.最大魔法攻击数率] = 1 });
+                                        AddBuff(BuffType.英雄灵气, this, 0, new Stats { [Stat.敏捷] = 2, [Stat.MaxDCRatePercent] = 2, [Stat.MaxMCRatePercent] = 1 });
                                         break;
                                     default:
                                         break;
@@ -3620,7 +3630,7 @@ namespace Server.MirObjects
                                     ReceiveChat("--怪物信息--", ChatType.System2);
                                     ReceiveChat(string.Format("ID : {0}, 怪物名 : {1}", monOb.Info.Index, monOb.Name), ChatType.System2);
                                     ReceiveChat(string.Format("Level : {0}, X : {1}, Y : {2}, Dir: {3}", monOb.Level, monOb.CurrentLocation.X, monOb.CurrentLocation.Y, monOb.Direction), ChatType.System2);
-                                    ReceiveChat(string.Format("HP : {0}, MinDC : {1}, MaxDC : {2}", monOb.Info.Stats[Stat.HP], monOb.Stats[Stat.MinDC], monOb.Stats[Stat.MaxDC]), ChatType.System2);
+                                    ReceiveChat(string.Format("HP : {0}, MinDC : {1}, MaxDC : {2}", monOb.Info.Stats[Stat.HP], monOb.Stats[Stat.最小攻击], monOb.Stats[Stat.最大攻击]), ChatType.System2);
                                     break;
                                 case ObjectType.Merchant:
                                     NPCObject npcOb = (NPCObject)ob;
@@ -4132,6 +4142,17 @@ namespace Server.MirObjects
             }
 
             return text;
+        }
+        public void KillPet(uint objectID)
+        {
+            for (int i = 0; i < Pets.Count; i++)
+            {
+                if (Pets[i].ObjectID == objectID && !Pets[i].Dead)
+                {
+                    Pets[i].Die();
+                    break;
+                }
+            }
         }
         public void Turn(MirDirection dir)
         {
@@ -5645,14 +5666,14 @@ namespace Server.MirObjects
                             {
                                 int time = item.Info.Durability;
 
-                                if (item.GetTotal(Stat.MaxDC) > 0)
-                                    AddBuff(BuffType.攻击力提升, this, time * Settings.Minute, new Stats { [Stat.MaxDC] = item.GetTotal(Stat.MaxDC) });
+                                if (item.GetTotal(Stat.最大攻击) > 0)
+                                    AddBuff(BuffType.攻击力提升, this, time * Settings.Minute, new Stats { [Stat.最大攻击] = item.GetTotal(Stat.最大攻击) });
 
-                                if (item.GetTotal(Stat.MaxMC) > 0)
-                                    AddBuff(BuffType.魔法力提升, this, time * Settings.Minute, new Stats { [Stat.MaxMC] = item.GetTotal(Stat.MaxMC) });
+                                if (item.GetTotal(Stat.最大魔法) > 0)
+                                    AddBuff(BuffType.魔法力提升, this, time * Settings.Minute, new Stats { [Stat.最大魔法] = item.GetTotal(Stat.最大魔法) });
 
-                                if (item.GetTotal(Stat.MaxSC) > 0)
-                                    AddBuff(BuffType.道术力提升, this, time * Settings.Minute, new Stats { [Stat.MaxSC] = item.GetTotal(Stat.MaxSC) });
+                                if (item.GetTotal(Stat.最大道术) > 0)
+                                    AddBuff(BuffType.道术力提升, this, time * Settings.Minute, new Stats { [Stat.最大道术] = item.GetTotal(Stat.最大道术) });
 
                                 if (item.GetTotal(Stat.攻击速度) > 0)
                                     AddBuff(BuffType.攻击速度提升, this, time * Settings.Minute, new Stats { [Stat.攻击速度] = item.GetTotal(Stat.攻击速度) });
@@ -5663,11 +5684,11 @@ namespace Server.MirObjects
                                 if (item.GetTotal(Stat.MP) > 0)
                                     AddBuff(BuffType.法力值提升, this, time * Settings.Minute, new Stats { [Stat.MP] = item.GetTotal(Stat.MP) });
 
-                                if (item.GetTotal(Stat.MaxAC) > 0)
-                                    AddBuff(BuffType.防御提升, this, time * Settings.Minute, new Stats { [Stat.MaxAC] = item.GetTotal(Stat.MaxAC) });
+                                if (item.GetTotal(Stat.最大防御) > 0)
+                                    AddBuff(BuffType.防御提升, this, time * Settings.Minute, new Stats { [Stat.最大防御] = item.GetTotal(Stat.最大防御) });
 
-                                if (item.GetTotal(Stat.MaxMAC) > 0)
-                                    AddBuff(BuffType.魔法防御提升, this, time * Settings.Minute, new Stats { [Stat.MaxMAC] = item.GetTotal(Stat.MaxMAC) });
+                                if (item.GetTotal(Stat.最大魔御) > 0)
+                                    AddBuff(BuffType.魔法防御提升, this, time * Settings.Minute, new Stats { [Stat.最大魔御] = item.GetTotal(Stat.最大魔御) });
 
                                 if (item.GetTotal(Stat.背包负重) > 0)
                                     AddBuff(BuffType.背包负重提升, this, time * Settings.Minute, new Stats { [Stat.背包负重] = item.GetTotal(Stat.背包负重) });
@@ -5682,27 +5703,27 @@ namespace Server.MirObjects
                         case 4: //Exp
                             {
                                 int time = item.Info.Durability;
-                                AddBuff(BuffType.获取经验提升, this, Settings.Minute * time, new Stats { [Stat.经验增长数率] = item.GetTotal(Stat.幸运) });
+                                AddBuff(BuffType.获取经验提升, this, Settings.Minute * time, new Stats { [Stat.经验率百分比] = item.GetTotal(Stat.幸运) });
                             }
                             break;
                         case 5: //Drop
                             {
                                 int time = item.Info.Durability;
-                                AddBuff(BuffType.物品掉落提升, this, Settings.Minute * time, new Stats { [Stat.物品掉落数率] = item.GetTotal(Stat.幸运) });
+                                AddBuff(BuffType.物品掉落提升, this, Settings.Minute * time, new Stats { [Stat.物品爆率百分比] = item.GetTotal(Stat.幸运) });
                             }
                             break;
                         case 6:
-                            PotHealthAmount = (ushort)Math.Min(ushort.MaxValue, PotHealthAmount + (Stats[Stat.HP] / 100) * (item.Info.Stats[Stat.生命值数率]));
-                            PotManaAmount = (ushort)Math.Min(ushort.MaxValue, PotManaAmount + (Stats[Stat.MP] / 100) * (item.Info.Stats[Stat.法力值数率]));
+                            PotHealthAmount = (ushort)Math.Min(ushort.MaxValue, PotHealthAmount + (Stats[Stat.HP] / 100) * (item.Info.Stats[Stat.HPRatePercent]));
+                            PotManaAmount = (ushort)Math.Min(ushort.MaxValue, PotManaAmount + (Stats[Stat.MP] / 100) * (item.Info.Stats[Stat.MPRatePercent]));
                             break;
                         case 7:
-                            ChangeHP((Stats[Stat.HP] / 100) * (item.Info.Stats[Stat.生命值数率]));
-                            ChangeMP((Stats[Stat.MP] / 100) * (item.Info.Stats[Stat.法力值数率]));
+                            ChangeHP((Stats[Stat.HP] / 100) * (item.Info.Stats[Stat.HPRatePercent]));
+                            ChangeMP((Stats[Stat.MP] / 100) * (item.Info.Stats[Stat.MPRatePercent]));
                             break;
                         case 8:
                             {
                                 int time = item.Info.Durability;
-                                AddBuff(BuffType.技能经验提升, this, Settings.Minute * time, new Stats { [Stat.技能熟练度倍率] = 3 });
+                                AddBuff(BuffType.技能经验提升, this, Settings.Minute * time, new Stats { [Stat.技能熟练度] = 3 });
                             }
                             break;
                     }
@@ -6706,14 +6727,14 @@ namespace Server.MirObjects
                         return;
                     }
 
-                    if ((tempTo.GemCount >= tempFrom.Info.Stats[Stat.暴击伤害]) || (GetCurrentStatCount(tempFrom, tempTo) >= tempFrom.Info.Stats[Stat.吸血数率]))
+                    if ((tempTo.GemCount >= tempFrom.Info.Stats[Stat.暴击伤害]) || (GetCurrentStatCount(tempFrom, tempTo) >= tempFrom.Info.Stats[Stat.吸血]))
                     {
                         ReceiveChat("赋能已达上限", ChatType.Hint);
                         Enqueue(p);
                         return;
                     }
 
-                    int successchance = tempFrom.Info.Stats[Stat.反弹伤害];
+                    int successchance = tempFrom.Info.Stats[Stat.Reflect];
 
                     // Gem is only affected by the stat applied.
                     // Drop rate per gem won't work if gems add more than 1 stat, i.e. DC + 2 per gem.
@@ -6723,24 +6744,24 @@ namespace Server.MirObjects
 
                         switch (GemType)
                         {
-                            case Stat.MaxAC:
-                                successchance *= (int)tempTo.AddedStats[Stat.MaxAC];
+                            case Stat.最大防御:
+                                successchance *= (int)tempTo.AddedStats[Stat.最大防御];
                                 break;
 
-                            case Stat.MaxMAC:
-                                successchance *= (int)tempTo.AddedStats[Stat.MaxMAC];
+                            case Stat.最大魔御:
+                                successchance *= (int)tempTo.AddedStats[Stat.最大魔御];
                                 break;
 
-                            case Stat.MaxDC:
-                                successchance *= (int)tempTo.AddedStats[Stat.MaxDC];
+                            case Stat.最大攻击:
+                                successchance *= (int)tempTo.AddedStats[Stat.最大攻击];
                                 break;
 
-                            case Stat.MaxMC:
-                                successchance *= (int)tempTo.AddedStats[Stat.MaxMC];
+                            case Stat.最大魔法:
+                                successchance *= (int)tempTo.AddedStats[Stat.最大魔法];
                                 break;
 
-                            case Stat.MaxSC:
-                                successchance *= (int)tempTo.AddedStats[Stat.MaxSC];
+                            case Stat.最大道术:
+                                successchance *= (int)tempTo.AddedStats[Stat.最大道术];
                                 break;
 
                             case Stat.攻击速度:
@@ -6755,20 +6776,20 @@ namespace Server.MirObjects
                                 successchance *= (int)tempTo.AddedStats[Stat.敏捷];
                                 break;
 
-                            case Stat.冰冻伤害:
-                                successchance *= (int)tempTo.AddedStats[Stat.冰冻伤害];
+                            case Stat.冰冻:
+                                successchance *= (int)tempTo.AddedStats[Stat.冰冻];
                                 break;
 
-                            case Stat.毒素伤害:
-                                successchance *= (int)tempTo.AddedStats[Stat.毒素伤害];
+                            case Stat.毒攻:
+                                successchance *= (int)tempTo.AddedStats[Stat.毒攻];
                                 break;
 
                             case Stat.魔法躲避:
                                 successchance *= (int)tempTo.AddedStats[Stat.魔法躲避];
                                 break;
 
-                            case Stat.毒物躲避:
-                                successchance *= (int)tempTo.AddedStats[Stat.毒物躲避];
+                            case Stat.毒药抵抗:
+                                successchance *= (int)tempTo.AddedStats[Stat.毒药抵抗];
                                 break;
 
                             // These attributes may not work as more than 1 stat is
@@ -6782,8 +6803,8 @@ namespace Server.MirObjects
                                 successchance *= (int)tempTo.AddedStats[Stat.MP];
                                 break;
 
-                            case Stat.生命恢复:
-                                successchance *= (int)tempTo.AddedStats[Stat.生命恢复];
+                            case Stat.体力恢复:
+                                successchance *= (int)tempTo.AddedStats[Stat.体力恢复];
                                 break;
                                 
                             // I don't know if this conflicts with benes.
@@ -6824,7 +6845,7 @@ namespace Server.MirObjects
                         successchance *= (int)tempTo.GemCount;
                     }
 
-                    successchance = successchance >= tempFrom.Info.Stats[Stat.暴击倍率] ? 0 : (tempFrom.Info.Stats[Stat.暴击倍率] - successchance) + Stats[Stat.宝石成功数率];
+                    successchance = successchance >= tempFrom.Info.Stats[Stat.暴击率] ? 0 : (tempFrom.Info.Stats[Stat.暴击率] - successchance) + Stats[Stat.宝玉成功率];
 
                     //check if combine will succeed
                     bool succeeded = Envir.Random.Next(100) < successchance;
@@ -6839,29 +6860,29 @@ namespace Server.MirObjects
                         return;
                     }
 
-                    if (tempFrom.GetTotal(Stat.MaxDC) > 0)
+                    if (tempFrom.GetTotal(Stat.最大攻击) > 0)
                     {
-                        if (succeeded) tempTo.AddedStats[Stat.MaxDC] += tempFrom.GetTotal(Stat.MaxDC);
+                        if (succeeded) tempTo.AddedStats[Stat.最大攻击] += tempFrom.GetTotal(Stat.最大攻击);
                     }
 
-                    else if (tempFrom.GetTotal(Stat.MaxMC) > 0)
+                    else if (tempFrom.GetTotal(Stat.最大魔法) > 0)
                     {
-                        if (succeeded) tempTo.AddedStats[Stat.MaxMC] += tempFrom.GetTotal(Stat.MaxMC);
+                        if (succeeded) tempTo.AddedStats[Stat.最大魔法] += tempFrom.GetTotal(Stat.最大魔法);
                     }
 
-                    else if (tempFrom.GetTotal(Stat.MaxSC) > 0)
+                    else if (tempFrom.GetTotal(Stat.最大道术) > 0)
                     {
-                        if (succeeded) tempTo.AddedStats[Stat.MaxSC] += tempFrom.GetTotal(Stat.MaxSC);
+                        if (succeeded) tempTo.AddedStats[Stat.最大道术] += tempFrom.GetTotal(Stat.最大道术);
                     }
 
-                    else if (tempFrom.GetTotal(Stat.MaxAC) > 0)
+                    else if (tempFrom.GetTotal(Stat.最大防御) > 0)
                     {
-                        if (succeeded) tempTo.AddedStats[Stat.MaxAC] += tempFrom.GetTotal(Stat.MaxAC);
+                        if (succeeded) tempTo.AddedStats[Stat.最大防御] += tempFrom.GetTotal(Stat.最大防御);
                     }
 
-                    else if (tempFrom.GetTotal(Stat.MaxMAC) > 0)
+                    else if (tempFrom.GetTotal(Stat.最大魔御) > 0)
                     {
-                        if (succeeded) tempTo.AddedStats[Stat.MaxMAC] += tempFrom.GetTotal(Stat.MaxMAC);
+                        if (succeeded) tempTo.AddedStats[Stat.最大魔御] += tempFrom.GetTotal(Stat.最大魔御);
                     }
 
                     else if ((tempFrom.Info.Durability) > 0)
@@ -6884,14 +6905,14 @@ namespace Server.MirObjects
                         if (succeeded) tempTo.AddedStats[Stat.准确] += tempFrom.GetTotal(Stat.准确);
                     }
 
-                    else if (tempFrom.GetTotal(Stat.毒素伤害) > 0)
+                    else if (tempFrom.GetTotal(Stat.毒攻) > 0)
                     {
-                        if (succeeded) tempTo.AddedStats[Stat.毒素伤害] += tempFrom.GetTotal(Stat.毒素伤害);
+                        if (succeeded) tempTo.AddedStats[Stat.毒攻] += tempFrom.GetTotal(Stat.毒攻);
                     }
 
-                    else if (tempFrom.GetTotal(Stat.冰冻伤害) > 0)
+                    else if (tempFrom.GetTotal(Stat.冰冻) > 0)
                     {
-                        if (succeeded) tempTo.AddedStats[Stat.冰冻伤害] += tempFrom.GetTotal(Stat.冰冻伤害);
+                        if (succeeded) tempTo.AddedStats[Stat.冰冻] += tempFrom.GetTotal(Stat.冰冻);
                     }
 
                     else if (tempFrom.GetTotal(Stat.魔法躲避) > 0)
@@ -6899,9 +6920,9 @@ namespace Server.MirObjects
                         if (succeeded) tempTo.AddedStats[Stat.魔法躲避] += tempFrom.GetTotal(Stat.魔法躲避);
                     }
 
-                    else if (tempFrom.GetTotal(Stat.毒物躲避) > 0)
+                    else if (tempFrom.GetTotal(Stat.毒药抵抗) > 0)
                     {
-                        if (succeeded) tempTo.AddedStats[Stat.毒物躲避] += tempFrom.GetTotal(Stat.毒物躲避);
+                        if (succeeded) tempTo.AddedStats[Stat.毒药抵抗] += tempFrom.GetTotal(Stat.毒药抵抗);
                     }
                     else if (tempFrom.GetTotal(Stat.幸运) > 0)
                     {
@@ -7063,20 +7084,20 @@ namespace Server.MirObjects
         //Gems granting multiple stat types are not compatiable with this method.
         private Stat GetGemType(UserItem gem)
         {
-            if (gem.GetTotal(Stat.MaxDC) > 0)
-                return Stat.MaxDC;
+            if (gem.GetTotal(Stat.最大攻击) > 0)
+                return Stat.最大攻击;
 
-            else if (gem.GetTotal(Stat.MaxMC) > 0)
-                return Stat.MaxMC;
+            else if (gem.GetTotal(Stat.最大魔法) > 0)
+                return Stat.最大魔法;
 
-            else if (gem.GetTotal(Stat.MaxSC) > 0)
-                return Stat.MaxSC;
+            else if (gem.GetTotal(Stat.最大道术) > 0)
+                return Stat.最大道术;
 
-            else if (gem.GetTotal(Stat.MaxAC) > 0)
-                return Stat.MaxAC;
+            else if (gem.GetTotal(Stat.最大防御) > 0)
+                return Stat.最大防御;
 
-            else if (gem.GetTotal(Stat.MaxMAC) > 0)
-                return Stat.MaxMAC;
+            else if (gem.GetTotal(Stat.最大魔御) > 0)
+                return Stat.最大魔御;
 
             else if (gem.GetTotal(Stat.攻击速度) > 0)
                 return Stat.攻击速度;
@@ -7087,17 +7108,17 @@ namespace Server.MirObjects
             else if (gem.GetTotal(Stat.准确) > 0)
                 return Stat.准确;
 
-            else if (gem.GetTotal(Stat.毒素伤害) > 0)
-                return Stat.毒素伤害;
+            else if (gem.GetTotal(Stat.毒攻) > 0)
+                return Stat.毒攻;
 
-            else if (gem.GetTotal(Stat.冰冻伤害) > 0)
-                return Stat.冰冻伤害;
+            else if (gem.GetTotal(Stat.冰冻) > 0)
+                return Stat.冰冻;
 
             else if (gem.GetTotal(Stat.魔法躲避) > 0)
                 return Stat.魔法躲避;
 
-            else if (gem.GetTotal(Stat.毒物躲避) > 0)
-                return Stat.毒物躲避;
+            else if (gem.GetTotal(Stat.毒药抵抗) > 0)
+                return Stat.毒药抵抗;
 
             else if (gem.GetTotal(Stat.幸运) > 0)
                 return Stat.幸运;
@@ -7111,16 +7132,16 @@ namespace Server.MirObjects
             else if (gem.GetTotal(Stat.MP) > 0)
                 return Stat.MP;
 
-            else if (gem.GetTotal(Stat.生命恢复) > 0)
-                return Stat.生命恢复;
+            else if (gem.GetTotal(Stat.体力恢复) > 0)
+                return Stat.体力恢复;
 
             // These may be incomplete. Item definitions may be missing?
 
-            else if (gem.GetTotal(Stat.生命值数率) > 0)
-                return Stat.生命值数率;
+            else if (gem.GetTotal(Stat.HPRatePercent) > 0)
+                return Stat.HPRatePercent;
 
-            else if (gem.GetTotal(Stat.法力值数率) > 0)
-                return Stat.法力值数率;
+            else if (gem.GetTotal(Stat.MPRatePercent) > 0)
+                return Stat.MPRatePercent;
 
             else if (gem.GetTotal(Stat.法力恢复) > 0)
                 return Stat.法力恢复;
@@ -7131,8 +7152,8 @@ namespace Server.MirObjects
             else if (gem.GetTotal(Stat.强度) > 0)
                 return Stat.强度;
 
-            else if (gem.GetTotal(Stat.吸血数率) > 0)
-                return Stat.吸血数率;
+            else if (gem.GetTotal(Stat.吸血) > 0)
+                return Stat.吸血;
 
             return Stat.Unknown;
         }
@@ -7261,7 +7282,7 @@ namespace Server.MirObjects
             Account.Gold -= gold;
             Enqueue(new S.LoseGold { Gold = gold });
         }
-        public void PickUp()
+        public void PickUp(bool force = false)
         {
             if (Dead)
             {
@@ -7278,7 +7299,15 @@ namespace Server.MirObjects
                 MapObject ob = cell.Objects[i];
 
                 if (ob.Race != ObjectType.Item) continue;
-
+                if (!force)
+                {
+                    bool inNoPickList = false;
+                    foreach (var no in NoPickList)
+                    {
+                        if (ob.Name == no) inNoPickList = true;
+                    }
+                    if (inNoPickList) continue;
+                }
                 if (ob.Owner != null && ob.Owner != this && !IsGroupMember(ob.Owner)) //Or Group member.
                 {
                     sendFail = true;
@@ -7298,7 +7327,7 @@ namespace Server.MirObjects
                     GainItem(item.Item);
 
                     Report.ItemChanged(item.Item, item.Item.Count, 2);
-
+                    CallDefaultNPC(DefaultNPCType.PickUp, item.Item.Info.Shape);
                     CurrentMap.RemoveObject(ob);
                     ob.Despawn();
 
@@ -7627,6 +7656,10 @@ namespace Server.MirObjects
                     break;
                 case DefaultNPCType.Client:
                     key = "Client";
+                    break;
+                case DefaultNPCType.PickUp:
+                    if (value.Length < 1) return;
+                    key = string.Format("PickUp({0})", value[0]);
                     break;
             }
 
@@ -8368,7 +8401,7 @@ namespace Server.MirObjects
                     Account.Auctions.Remove(auction);
                     Envir.Auctions.Remove(auction);
                     GainGold(gold);
-                    Enqueue(new S.MarketSuccess { Message = string.Format("{0}卖出价格: {1:#,##0}金币 \n收入: {2:#,##0}金币\n佣金: {3:#,##0}金币‎", auction.Item.FriendlyName, cost, gold, cost - gold) });
+                    Enqueue(new S.MarketSuccess { Message = string.Format("{0}卖出价格: {1:#,##0}金币 \n收入: {2:#,##0}金币\n佣金: {3:#,##0}金币", auction.Item.FriendlyName, cost, gold, cost - gold) });
                     MarketSearch(MatchName, MatchType);
                     return;
                 }
@@ -8394,7 +8427,7 @@ namespace Server.MirObjects
             {
                 if (auction.Sold && auction.Expired)
                 {
-                    MessageQueue.Enqueue(string.Format("拍卖已售出且已过期 {0}", Account.AccountID));
+                    MessageQueue.Enqueue(string.Format("已售出和已过期的拍卖 {0}", Account.AccountID));
                     return false;
                 }
 
@@ -8410,7 +8443,7 @@ namespace Server.MirObjects
 
                         if (auction.CurrentBuyerInfo != null)
                         {
-                        string message = string.Format("在对 {0} 的竞拍中已被超越。现退还 {1:#,##0} 金币", auction.Item.FriendlyName, auction.CurrentBid);
+                            string message = string.Format("你在{0}的出价已被超越。已退还{1:#,##0}金币.", auction.Item.FriendlyName, auction.CurrentBid);
 
                             Envir.MailCharacter(auction.CurrentBuyerInfo, gold: auction.CurrentBid, customMessage: message);
                         }
@@ -8432,14 +8465,18 @@ namespace Server.MirObjects
 
                     uint gold = (uint)Math.Max(0, cost - cost * Globals.Commission);
 
+
+
+
+
                     GainGold(gold);
-                Enqueue(new S.MarketSuccess { Message = string.Format("您以 {1:#,##0} 金币的价格出售了 {0}。\n收益：{2:#,##0} 金币。\n佣金：{3:#,##0} 金币", auction.Item.FriendlyName, cost, gold, cost - gold) });
+                    Enqueue(new S.MarketSuccess { Message = string.Format("你以{1:#,##0}金币的价格出售了{0}. \n收益：{2:#,##0} 金币。\n佣金：{3:#,##0} 金币.", auction.Item.FriendlyName, cost, gold, cost - gold) });
                     return true;
                 }
 
                 return false;
-            }
 
+            }
 
             if (Dead)
             {
@@ -9111,14 +9148,14 @@ namespace Server.MirObjects
                 member.Enqueue(new S.ObjectHealth { ObjectID = ObjectID, Percent = PercentHealth, Expire = time });
                 Enqueue(new S.ObjectHealth { ObjectID = member.ObjectID, Percent = member.PercentHealth, Expire = time });
 
-                if (Hero != null)
-                {
-                    member.Enqueue(new S.ObjectHealth { ObjectID = Hero.ObjectID, Percent = Hero.PercentHealth, Expire = time }); // Send Party Leader's HeroHP to Group Members
-                }
-                if (member.Hero != null)
-                {
-                    Enqueue(new S.ObjectHealth { ObjectID = member.Hero.ObjectID, Percent = member.Hero.PercentHealth, Expire = time }); // Send Party Members HeroHP to Leader
-                }
+                //if (Hero != null) //分别是向团队成员发送团队领导者的英雄生命值，以及向领导者发送团队成员的英雄生命值。
+                //{
+                //    member.Enqueue(new S.ObjectHealth { ObjectID = Hero.ObjectID, Percent = Hero.PercentHealth, Expire = time }); // Send Party Leader's HeroHP to Group Members
+                // }
+                // if (member.Hero != null)
+                //{
+                //    Enqueue(new S.ObjectHealth { ObjectID = member.Hero.ObjectID, Percent = member.Hero.PercentHealth, Expire = time }); // Send Party Members HeroHP to Leader
+                //}
 
                 for (int j = 0; j < member.Pets.Count; j++)
                 {
@@ -10431,8 +10468,8 @@ namespace Server.MirObjects
                 return;
             }
 
-            flexibilityStat = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, flexibilityStat + rod.Info.Stats[Stat.暴击倍率])));
-            successStat = (sbyte)Math.Max(sbyte.MinValue, (Math.Min(sbyte.MaxValue, successStat + rod.Info.Stats[Stat.MaxAC])));
+            flexibilityStat = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, flexibilityStat + rod.Info.Stats[Stat.暴击率])));
+            successStat = (sbyte)Math.Max(sbyte.MinValue, (Math.Min(sbyte.MaxValue, successStat + rod.Info.Stats[Stat.最大防御])));
 
             if (cast)
             {
@@ -10461,30 +10498,30 @@ namespace Server.MirObjects
                 {
                     case ItemType.鱼钩:
                         {
-                            flexibilityStat = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, flexibilityStat + temp.AddedStats[Stat.暴击倍率] + realItem.Stats[Stat.暴击倍率])));
+                            flexibilityStat = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, flexibilityStat + temp.AddedStats[Stat.暴击率] + realItem.Stats[Stat.暴击率])));
                         }
                         break;
                     case ItemType.鱼漂:
                         {
-                            nibbleMin = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, nibbleMin + realItem.Stats[Stat.MinAC])));
-                            nibbleMax = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, nibbleMax + realItem.Stats[Stat.MaxAC])));
+                            nibbleMin = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, nibbleMin + realItem.Stats[Stat.最小防御])));
+                            nibbleMax = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, nibbleMax + realItem.Stats[Stat.最大防御])));
                         }
                         break;
                     case ItemType.鱼饵:
                         {
-                            successStat = (sbyte)Math.Max(sbyte.MinValue, (Math.Min(sbyte.MaxValue, successStat + realItem.Stats[Stat.MaxAC])));
+                            successStat = (sbyte)Math.Max(sbyte.MinValue, (Math.Min(sbyte.MaxValue, successStat + realItem.Stats[Stat.最大防御])));
                         }
                         break;
                     case ItemType.探鱼器:
                         {
-                            failedAddSuccessMin = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, failedAddSuccessMin + realItem.Stats[Stat.MinAC])));
-                            failedAddSuccessMax = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, failedAddSuccessMax + realItem.Stats[Stat.MaxAC])));
+                            failedAddSuccessMin = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, failedAddSuccessMin + realItem.Stats[Stat.最小防御])));
+                            failedAddSuccessMax = (byte)Math.Max(byte.MinValue, (Math.Min(byte.MaxValue, failedAddSuccessMax + realItem.Stats[Stat.最大防御])));
                         }
                         break;
                     case ItemType.摇轮:
                         {
-                            FishingAutoReelChance = (sbyte)Math.Max(sbyte.MinValue, (Math.Min(sbyte.MaxValue, FishingAutoReelChance + realItem.Stats[Stat.MaxMAC])));
-                            successStat = (sbyte)Math.Max(sbyte.MinValue, (Math.Min(sbyte.MaxValue, successStat + realItem.Stats[Stat.MaxAC])));
+                            FishingAutoReelChance = (sbyte)Math.Max(sbyte.MinValue, (Math.Min(sbyte.MaxValue, FishingAutoReelChance + realItem.Stats[Stat.最大魔御])));
+                            successStat = (sbyte)Math.Max(sbyte.MinValue, (Math.Min(sbyte.MaxValue, successStat + realItem.Stats[Stat.最大防御])));
                         }
                         break;
                     default:
@@ -10496,7 +10533,7 @@ namespace Server.MirObjects
 
             if (cast) FishingChance = Settings.FishingSuccessStart + (int)successStat + (FishingChanceCounter != 0 ? Envir.Random.Next(failedAddSuccessMin, failedAddSuccessMax) : 0) + (FishingChanceCounter * Settings.FishingSuccessMultiplier); //10 //10
             if (FishingChanceCounter != 0) DamagedFishingItem(FishingSlot.Finder, 1);
-            FishingChance += Stats[Stat.钓鱼成功数率];
+            FishingChance += Stats[Stat.捕鱼率百分比];
 
             FishingChance = Math.Min(100, Math.Max(0, FishingChance));
             FishingNibbleChance = Math.Min(100, Math.Max(0, FishingNibbleChance));
@@ -10551,7 +10588,7 @@ namespace Server.MirObjects
 
                         foreach (DropInfo drop in Envir.FishingDrops.Where(x => x.Type == fishingCell.FishingAttribute))
                         {
-                            var reward = drop.AttemptDrop(EXPOwner?.Stats[Stat.物品掉落数率] ?? 0, EXPOwner?.Stats[Stat.金币收益数率] ?? 0);
+                            var reward = drop.AttemptDrop(EXPOwner?.Stats[Stat.物品爆率百分比] ?? 0, EXPOwner?.Stats[Stat.金币爆率百分比] ?? 0);
 
                             if (reward != null)
                             {
@@ -11780,14 +11817,14 @@ namespace Server.MirObjects
             switch ((int)dropitem.Info.Effect)
             {
                 case 0://exp low/med/high
-                    dropitem.AddedStats[Stat.经验增长数率] = 5;
-                    if (boxtype > 0) dropitem.AddedStats[Stat.经验增长数率] = 10;
-                    if (boxtype > 1) dropitem.AddedStats[Stat.经验增长数率] = 20;
+                    dropitem.AddedStats[Stat.经验率百分比] = 5;
+                    if (boxtype > 0) dropitem.AddedStats[Stat.经验率百分比] = 10;
+                    if (boxtype > 1) dropitem.AddedStats[Stat.经验率百分比] = 20;
                     break;
                 case 1://drop low/med/high
-                    dropitem.AddedStats[Stat.物品掉落数率] = 10;
-                    if (boxtype > 0) dropitem.AddedStats[Stat.物品掉落数率] = 20;
-                    if (boxtype > 1) dropitem.AddedStats[Stat.物品掉落数率] = 50;
+                    dropitem.AddedStats[Stat.物品爆率百分比] = 10;
+                    if (boxtype > 0) dropitem.AddedStats[Stat.物品爆率百分比] = 20;
+                    if (boxtype > 1) dropitem.AddedStats[Stat.物品爆率百分比] = 50;
                     break;
                 case 2://hp low/med/high
                     dropitem.AddedStats[Stat.HP] = 50;
@@ -11800,14 +11837,14 @@ namespace Server.MirObjects
                     if (boxtype > 1) dropitem.AddedStats[Stat.MP] = 200;
                     break;
                 case 4://ac low/med/high
-                    dropitem.AddedStats[Stat.MaxAC] = 1;
-                    if (boxtype > 0) dropitem.AddedStats[Stat.MaxAC] = 3;
-                    if (boxtype > 1) dropitem.AddedStats[Stat.MaxAC] = 5;
+                    dropitem.AddedStats[Stat.最大防御] = 1;
+                    if (boxtype > 0) dropitem.AddedStats[Stat.最大防御] = 3;
+                    if (boxtype > 1) dropitem.AddedStats[Stat.最大防御] = 5;
                     break;
                 case 5://amc low/med/high
-                    dropitem.AddedStats[Stat.MaxMAC] = 1;
-                    if (boxtype > 0) dropitem.AddedStats[Stat.MaxMAC] = 3;
-                    if (boxtype > 1) dropitem.AddedStats[Stat.MaxMAC] = 5;
+                    dropitem.AddedStats[Stat.最大魔御] = 1;
+                    if (boxtype > 0) dropitem.AddedStats[Stat.最大魔御] = 3;
+                    if (boxtype > 1) dropitem.AddedStats[Stat.最大魔御] = 5;
                     break;
                 case 6://speed low/med/high
                     dropitem.AddedStats[Stat.攻击速度] = 2;
@@ -12162,11 +12199,11 @@ namespace Server.MirObjects
                     continue;
                 }
 
-                if ((ingredient.Info.Stats[Stat.MaxDC] > 0) || (ingredient.Info.Stats[Stat.MaxMC] > 0) || (ingredient.Info.Stats[Stat.MaxSC] > 0))
+                if ((ingredient.Info.Stats[Stat.最大攻击] > 0) || (ingredient.Info.Stats[Stat.最大魔法] > 0) || (ingredient.Info.Stats[Stat.最大道术] > 0))
                 {
-                    totalDC += (short)(ingredient.Info.Stats[Stat.MinDC] + ingredient.Info.Stats[Stat.MaxDC] + ingredient.AddedStats[Stat.MaxDC]);
-                    totalMC += (short)(ingredient.Info.Stats[Stat.MinMC] + ingredient.Info.Stats[Stat.MaxMC] + ingredient.AddedStats[Stat.MaxMC]);
-                    totalSC += (short)(ingredient.Info.Stats[Stat.MinSC] + ingredient.Info.Stats[Stat.MaxSC] + ingredient.AddedStats[Stat.MaxSC]);
+                    totalDC += (short)(ingredient.Info.Stats[Stat.最小攻击] + ingredient.Info.Stats[Stat.最大攻击] + ingredient.AddedStats[Stat.最大攻击]);
+                    totalMC += (short)(ingredient.Info.Stats[Stat.最小魔法] + ingredient.Info.Stats[Stat.最大魔法] + ingredient.AddedStats[Stat.最大魔法]);
+                    totalSC += (short)(ingredient.Info.Stats[Stat.最小道术] + ingredient.Info.Stats[Stat.最大道术] + ingredient.AddedStats[Stat.最大道术]);
                     requiredLevel += ingredient.Info.RequiredAmount;
                     if (Math.Floor(ingredient.MaxDura / 1000M) == Math.Floor(ingredient.Info.Durability / 1000M)) durability++;
                     if (Math.Floor(ingredient.CurrentDura / 1000M) == Math.Floor(ingredient.MaxDura / 1000M)) currentDura++;
@@ -12267,7 +12304,7 @@ namespace Server.MirObjects
 
             int successChance = (itemSuccess + oreSuccess + luckSuccess + baseSuccess);
 
-            addedStats = (byte)(Info.CurrentRefine.AddedStats[Stat.MaxDC] + Info.CurrentRefine.AddedStats[Stat.MaxMC] + Info.CurrentRefine.AddedStats[Stat.MaxSC]);
+            addedStats = (byte)(Info.CurrentRefine.AddedStats[Stat.最大攻击] + Info.CurrentRefine.AddedStats[Stat.最大魔法] + Info.CurrentRefine.AddedStats[Stat.最大道术]);
             if (Info.CurrentRefine.Info.Type == ItemType.武器) addedStats = (short)(addedStats * Settings.RefineWepStatReduce);
             else addedStats = (short)(addedStats * Settings.RefineItemStatReduce);
             if (addedStats > 50) addedStats = 50;
@@ -12367,7 +12404,7 @@ namespace Server.MirObjects
             if ((Info.Inventory[index].RefinedValue == RefinedValue.DC) && (Info.Inventory[index].RefineAdded > 0))
             {
                 ReceiveChat(String.Format("恭喜 {0} 额外增加 {1}点 物理攻击", Info.Inventory[index].FriendlyName, Info.Inventory[index].RefineAdded), ChatType.System);
-                Info.Inventory[index].AddedStats[Stat.MaxDC] = (int)Math.Min(int.MaxValue, Info.Inventory[index].AddedStats[Stat.MaxDC] + Info.Inventory[index].RefineAdded);
+                Info.Inventory[index].AddedStats[Stat.最大攻击] = (int)Math.Min(int.MaxValue, Info.Inventory[index].AddedStats[Stat.最大攻击] + Info.Inventory[index].RefineAdded);
                 Info.Inventory[index].RefineAdded = 0;
                 Info.Inventory[index].RefinedValue = RefinedValue.None;
                 Info.Inventory[index].RefineSuccessChance = 0;
@@ -12376,7 +12413,7 @@ namespace Server.MirObjects
             else if ((Info.Inventory[index].RefinedValue == RefinedValue.MC) && (Info.Inventory[index].RefineAdded > 0))
             {
                 ReceiveChat(String.Format("恭喜 {0} 额外增加 {1}点 魔法攻击", Info.Inventory[index].FriendlyName, Info.Inventory[index].RefineAdded), ChatType.System);
-                Info.Inventory[index].AddedStats[Stat.MaxMC] = (int)Math.Min(int.MaxValue, Info.Inventory[index].AddedStats[Stat.MaxMC] + Info.Inventory[index].RefineAdded);
+                Info.Inventory[index].AddedStats[Stat.最大魔法] = (int)Math.Min(int.MaxValue, Info.Inventory[index].AddedStats[Stat.最大魔法] + Info.Inventory[index].RefineAdded);
                 Info.Inventory[index].RefineAdded = 0;
                 Info.Inventory[index].RefinedValue = RefinedValue.None;
                 Info.Inventory[index].RefineSuccessChance = 0;
@@ -12385,7 +12422,7 @@ namespace Server.MirObjects
             else if ((Info.Inventory[index].RefinedValue == RefinedValue.SC) && (Info.Inventory[index].RefineAdded > 0))
             {
                 ReceiveChat(String.Format("恭喜 {0} 额外增加 {1}点 道术攻击", Info.Inventory[index].FriendlyName, Info.Inventory[index].RefineAdded), ChatType.System);
-                Info.Inventory[index].AddedStats[Stat.MaxSC] = (int)Math.Min(int.MaxValue, Info.Inventory[index].AddedStats[Stat.MaxSC] + Info.Inventory[index].RefineAdded);
+                Info.Inventory[index].AddedStats[Stat.最大道术] = (int)Math.Min(int.MaxValue, Info.Inventory[index].AddedStats[Stat.最大道术] + Info.Inventory[index].RefineAdded);
                 Info.Inventory[index].RefineAdded = 0;
                 Info.Inventory[index].RefinedValue = RefinedValue.None;
                 Info.Inventory[index].RefineSuccessChance = 0;
@@ -13156,19 +13193,22 @@ namespace Server.MirObjects
 
         public void GameshopBuy(int GIndex, byte Quantity, int PType)
         {
-            if (Quantity < 1 || Quantity > 99) return;
+            if (Quantity < 1 || Quantity > 99)
+            {
+                MessageQueue.EnqueueDebugging($"{Info.Name} 购买数量不合法: {Quantity}");
+                return;
+            }
 
             List<GameShopItem> shopList = Envir.GameShopList;
             GameShopItem Product = null;
 
-            int purchased;
-            bool stockAvailable = false;
             bool canAfford = false;
             uint CreditCost = 0;
             uint GoldCost = 0;
 
             List<UserItem> mailItems = new List<UserItem>();
 
+            // 查找商品
             for (int i = 0; i < shopList.Count; i++)
             {
                 if (shopList[i].GIndex == GIndex)
@@ -13178,6 +13218,7 @@ namespace Server.MirObjects
                 }
             }
 
+            // 商品不存在
             if (Product == null)
             {
                 ReceiveChat("购买的物品不在商店内", ChatType.System);
@@ -13185,16 +13226,31 @@ namespace Server.MirObjects
                 return;
             }
 
-            if (((decimal)(Quantity * Product.Count) / Product.Info.StackSize) > 5) return;
+            // 检查物品是否为空（防御性编程）
+            if (Product.Info == null)
+            {
+                ReceiveChat("该商品信息异常，请联系管理员", ChatType.System);
+                MessageQueue.EnqueueDebugging($"{Info.Name} 试图购买空物品 GIndex={GIndex}");
+                return;
+            }
 
+            // 检查堆叠限制
+            if (((decimal)(Quantity * Product.Count) / Product.Info.StackSize) > 5)
+            {
+                MessageQueue.EnqueueDebugging($"{Info.Name} 购买数量超出堆叠限制");
+                return;
+            }
+
+            // 检查库存
+            bool stockAvailable = true;
+            int purchased = 0;
             if (Product.Stock != 0)
             {
-
-                if (Product.iStock) //Invididual Stock
+                if (Product.iStock) //个人库存
                 {
                     Info.GSpurchases.TryGetValue(Product.Info.Index, out purchased);
                 }
-                else //Server Stock
+                else //全局库存
                 {
                     Envir.GameshopLog.TryGetValue(Product.Info.Index, out purchased);
                 }
@@ -13207,7 +13263,7 @@ namespace Server.MirObjects
                 {
                     ReceiveChat("购买的商品数量超过了存货数量", ChatType.System);
                     GameShopStock(Product);
-                    MessageQueue.EnqueueDebugging(Info.Name + " 正在尝试购买 " + Product.Info.FriendlyName + " x " + Quantity + " - Stock isn't available.");
+                    MessageQueue.EnqueueDebugging($"{Info.Name} 库存不足: {Product.Info.FriendlyName} x{Quantity}");
                     return;
                 }
             }
@@ -13253,41 +13309,48 @@ namespace Server.MirObjects
             if (canAfford)
             {
                 MessageQueue.EnqueueDebugging(Info.Name + " 正在尝试购买 " + Product.Info.FriendlyName + " x " + Quantity + " - 货币充足");
+
+                // 扣除货币
                 if (PType == 0)
                 {
                     Account.Credit -= CreditCost;
                     Report.CreditChanged(CreditCost, true, Product.Info.FriendlyName);
                     if (CreditCost != 0) Enqueue(new S.LoseCredit { Credit = CreditCost });
-
                 }
-                if (PType == 1)
+                else if (PType == 1) // 修改为else if保持逻辑一致性
                 {
                     Account.Gold -= GoldCost;
                     Report.GoldChanged(GoldCost, true, Product.Info.FriendlyName);
                     if (GoldCost != 0) Enqueue(new S.LoseGold { Gold = GoldCost });
                 }
 
+                // 更新购买记录 - 修复键不一致问题
+                int itemIndex = Product.Info.Index; // 使用一致的键
+
+                // 更新个人库存
                 if (Product.iStock && Product.Stock != 0)
                 {
-                    Info.GSpurchases.TryGetValue(Product.Info.Index, out purchased);
-                    if (purchased == 0)
+                    if (Info.GSpurchases.TryGetValue(itemIndex, out purchased))
                     {
-                        Info.GSpurchases[Product.GIndex] = Quantity;
+                        Info.GSpurchases[itemIndex] = purchased + Quantity;
                     }
                     else
                     {
-                        Info.GSpurchases[Product.GIndex] += Quantity;
+                        Info.GSpurchases.Add(itemIndex, Quantity);
                     }
                 }
 
-                Envir.GameshopLog.TryGetValue(Product.Info.Index, out purchased);
-                if (purchased == 0)
+                // 更新全局库存 - 使用lock保证线程安全
+                lock (Envir.GameshopLog)
                 {
-                    Envir.GameshopLog[Product.GIndex] = Quantity;
-                }
-                else
-                {
-                    Envir.GameshopLog[Product.GIndex] += Quantity;
+                    if (Envir.GameshopLog.TryGetValue(itemIndex, out purchased))
+                    {
+                        Envir.GameshopLog[itemIndex] = purchased + Quantity;
+                    }
+                    else
+                    {
+                        Envir.GameshopLog.Add(itemIndex, Quantity);
+                    }
                 }
 
                 if (Product.Stock != 0) GameShopStock(Product);
@@ -13306,7 +13369,6 @@ namespace Server.MirObjects
                 for (int i = 0; i < Quantity; i++)
                 {
                     UserItem mailItem = Envir.CreateFreshItem(Envir.GetItemInfo(Product.Info.Index));
-
                     mailItems.Add(mailItem);
                 }
             }
@@ -13325,7 +13387,6 @@ namespace Server.MirObjects
                     if (mailItem.Count == 0) break;
 
                     mailItems.Add(mailItem);
-
                 }
             }
 
@@ -13333,13 +13394,13 @@ namespace Server.MirObjects
             {
                 MailID = ++Envir.NextMailID,
                 Sender = "游戏商城",
-                Message = "感谢您从游戏商店购物，随函附上所购买的商品",
+                Message = "感谢您从游戏商店购物，点击接收按钮，已购商品将发送至您的背包。请确保您的背包有足够的空间。",
                 Items = mailItems,
             };
             mail.Send();
 
             MessageQueue.EnqueueDebugging(Info.Name + " 正在尝试购买 " + Product.Info.FriendlyName + " x " + Quantity + " - 购买已发送");
-            ReceiveChat("购买的商品已发送到您的邮箱", ChatType.Hint);
+            ReceiveChat("购买的商品已发送到您的邮箱，请查收。", ChatType.Hint);
         }
 
         public void GetGameShop()
@@ -13882,7 +13943,19 @@ namespace Server.MirObjects
         }
 
         #endregion
+        //客户端在下载后开始播放音乐
+        public void ClientPlayBgMusic(uint duration)
+        {
+            Broadcast(new S.BgMusicEffect { ObjectID = ObjectID, Duration = duration });
+        }
 
+        public void PlayerToggleBgMusic(bool play)
+        {
+            //if (Account.FansLevel > -1)
+            //{
+                Account.PlayBgMusic = play;
+            //}
+        }
         public Server.MirEnvir.Timer GetTimer(string key)
         {
             var timerKey = Name + "-" + key;

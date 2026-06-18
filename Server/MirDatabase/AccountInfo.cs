@@ -12,9 +12,9 @@ namespace Server.MirDatabase
             get { return Envir.Main; }
         }
         protected static MessageQueue MessageQueue => MessageQueue.Instance;
-
+        //// 账户基本信息
         public int Index;
-
+        public string Openid = string.Empty;
         public string AccountID = string.Empty;
 
         private string password = string.Empty;
@@ -36,32 +36,33 @@ namespace Server.MirDatabase
         public string SecretQuestion = string.Empty;
         public string SecretAnswer = string.Empty;
         public string EMailAddress = string.Empty;
-
+        // 账户创建信息
         public string CreationIP = string.Empty;
         public DateTime CreationDate;
-
+        // 账户状态
         public bool Banned;
         public bool RequirePasswordChange;
         public string BanReason = string.Empty;
         public DateTime ExpiryDate;
         public int WrongPasswordCount;
-
+        // 账户登录信息
         public string LastIP = string.Empty;
         public DateTime LastDate;
-
+        // 角色和物品存储
         public List<CharacterInfo> Characters = new List<CharacterInfo>();
-
         public UserItem[] Storage = new UserItem[80];
         public bool HasExpandedStorage;
         public DateTime ExpandedStorageExpiryDate;
         public uint Gold;
         public uint Credit;
-
+        // 连接和拍卖信息
         public MirConnection Connection;
-
         public LinkedList<AuctionInfo> Auctions = new LinkedList<AuctionInfo>();
+        // 账户权限
         public bool AdminAccount;
-
+        // 自定义设置
+        public string BgMusic = string.Empty;
+        public bool PlayBgMusic;
         public AccountInfo()
         {
 
@@ -69,6 +70,7 @@ namespace Server.MirDatabase
 
         public AccountInfo(C.NewAccount p)
         {
+            //Openid = p.AccountID;
             AccountID = p.AccountID;
 
             Password = p.Password;
@@ -83,7 +85,7 @@ namespace Server.MirDatabase
         public AccountInfo(BinaryReader reader)
         {
             Index = reader.ReadInt32();
-
+            //Openid = reader.ReadString();
             AccountID = reader.ReadString();
             if (Envir.LoadVersion < 94)
                 Password = reader.ReadString();
@@ -174,11 +176,17 @@ namespace Server.MirDatabase
                     Envir.CheckRankUpdate(Characters[i]);
                 }
             }
+            if (Envir.LoadVersion > 110)
+            {
+                BgMusic = reader.ReadString();
+                PlayBgMusic = reader.ReadBoolean();
+            }
         }
 
         public void Save(BinaryWriter writer)
         {
             writer.Write(Index);
+            //writer.Write(Openid);
             writer.Write(AccountID);
             writer.Write(Password);
             writer.Write(Salt.Length);
@@ -220,6 +228,8 @@ namespace Server.MirDatabase
                 Storage[i].Save(writer);
             }
             writer.Write(AdminAccount);
+            writer.Write(BgMusic);
+            writer.Write(PlayBgMusic);
         }
 
         public List<SelectInfo> GetSelectInfo()

@@ -1,7 +1,8 @@
-using System.Drawing;
 ﻿using Server.MirDatabase;
 using Server.MirEnvir;
 using Server.MirObjects.Monsters;
+using ServerPackets;
+using System.Drawing;
 using S = ServerPackets;
 
 namespace Server.MirObjects
@@ -16,25 +17,24 @@ namespace Server.MirObjects
             {
                 case 1:
                 case 2:
-                    return new Deer(info);
+                    return new Deer(info); //鹿
                 case 3:
-                    return new Tree(info);
+                    return new Tree(info); //树
                 case 4:
-                    //Common AI: 1 Line Attack with Poison
-                    return new SpittingSpider(info);
+                    return new SpittingSpider(info); //喷液蜘蛛 通用AI：带中毒效果的单行攻击
                 case 5:
-                    return new CannibalPlant(info);
+                    return new CannibalPlant(info); //食人植物
                 case 6:
-                    return new Guard(info);
+                    return new Guard(info); //守卫
                 case 7:
-                    return new CaveMaggot(info);
+                    return new CaveMaggot(info); //洞穴蛆虫
                 case 8:
-                    //Common AI: 1 Range Projectile Attack with Fear
+                    //常见AI：1 范围投射物攻击并附带恐惧效果
                     return new AxeSkeleton(info);
                 case 9:
                     return new HarvestMonster(info);
                 case 10:
-                    //Common AI: 1 Magic Attack
+                    //通用AI：1点魔法攻击
                     return new FlamingWooma(info);
                 case 11:
                     return new WoomaTaurus(info);
@@ -73,22 +73,22 @@ namespace Server.MirObjects
                 case 28:
                     return new ToxicGhoul(info);
                 case 29:
-                    //Common AI: 1 Line Attack
+                    //常见AI：1线攻击
                     return new BoneSpearman(info);
                 case 30:
                     return new BoneLord(info);
                 case 31:
-                    //Common AI: 2 Magic Attacks, 1 Close, 1 Range
+                    //普通AI：2次魔法攻击、1次近战、1次远程
                     return new RightGuard(info);
                 case 32:
-                    //Common AI: 2 Magic Attacks, 1 Close, 1 Range Projectile
+                    //普通AI：2次魔法攻击、1次近战、1次远程投射物
                     return new LeftGuard(info);
                 case 33:
                     return new MinotaurKing(info);
                 case 34:
                     return new FrostTiger(info); //Effect 0/1
                 case 35:
-                    //Common AI: 1 Line Attack
+                    //常见AI：1线攻击
                     return new SandWorm(info);
                 case 36:
                     return new Yimoogi(info);
@@ -106,7 +106,7 @@ namespace Server.MirObjects
                 case 43:
                     return new OmaKing(info);
                 case 44:
-                    //Common AI: 2 Attacks, 1 Close, 1 Line Attack
+                    //常见AI：2次攻击，1次近距离，1次直线攻击
                     return new BlackFoxman(info);
                 case 45:
                     return new RedFoxman(info);
@@ -134,9 +134,9 @@ namespace Server.MirObjects
                 case 56:
                     return new Trainer(info);
                 case 57:
-                    return new TownArcher(info);
+                    return new TownArcher(info); //城镇弓箭手
                 case 58:
-                    return new Guard(info);
+                    return new Guard(info); //警卫
                 case 59:
                     return new HumanAssassin(info);
                 case 60:
@@ -150,10 +150,10 @@ namespace Server.MirObjects
                 case 64:
                     return new IntelligentCreatureObject(info);
                 case 65:
-                    //Common AI: 2 Close attacks with WeakerTeleport
+                    //通用人工智能：使用弱传送技能进行2次近身攻击
                     return new MutatedManworm(info);
                 case 66:
-                    //Common AI: 2 Close Attacks
+                    //常见人工智能：2次近身攻击
                     return new CrazyManworm(info);
                 case 67:
                     return new DarkDevourer(info);
@@ -174,10 +174,10 @@ namespace Server.MirObjects
                 case 75:
                     return new WitchDoctor(info);
                 case 76:
-                    //Common AI: 2 Close Attacks, 1 Normal, 1 Halfmoon
+                    //普通AI：2次近身攻击、1次普通攻击、1次半月形攻击
                     return new HellSlasher(info);
                 case 77:
-                    //Common AI: 2 Close Attacks, 1 Normal, 1 Fullmoon
+                    //常见人工智能：2次近身攻击，1次普通攻击，1次满月攻击
                     return new HellPirate(info);
                 case 78:
                     return new HellCannibal(info);
@@ -190,7 +190,7 @@ namespace Server.MirObjects
                 case 82:
                     return new Wall(info);
                 case 83:
-                    return new Tornado(info);
+                    return new Tornado(info); //龙卷风
                 case 84:
                     return new WingedTigerLord(info);
                 case 85:
@@ -208,13 +208,13 @@ namespace Server.MirObjects
                 case 91:
                     return new TrollKing(info);
                 case 92:
-                    //Common AI: 2 Attacks with Fear, 1 Normal, 1 Long Line
+                    //常见人工智能：2次恐惧攻击、1次普通攻击、1次长线攻击
                     return new FlameSpear(info);
                 case 93:
-                    //Common AI: 2 Magic Attacks with Fear, 1 Close, 1 Range AOE
+                    //普通人工智能：2次带有恐惧效果的魔法攻击、1次近战攻击、1次范围性远程攻击
                     return new FlameMage(info);
                 case 94:
-                    //Common AI: 2 Magic Attacks with Fear, 1 Close, 1 Close AOE
+                    //普通AI：2次带有恐惧效果的魔法攻击、1次近战攻击、1次近战范围攻击
                     return new FlameScythe(info);
                 case 95:
                     return new FlameAssassin(info);
@@ -227,7 +227,7 @@ namespace Server.MirObjects
                 case 99:
                     return new HellBomb(info);
                 case 100:
-                    //Common AI: 1 Magic Line Attack with Poison
+                    //常见AI：1次带毒魔法直线攻击
                     return new VenomSpider(info);
                 case 101:
                     return new AncientBringer(info);
@@ -242,7 +242,7 @@ namespace Server.MirObjects
                 case 106:
                     return new DeathCrawler(info);
                 case 107:
-                    //Common AI: 2 Magic Attacks with Rush, 1 Close, 1 Range
+                    //普通AI：2次带冲锋的魔法攻击，1次近战攻击，1次远程攻击
                     return new BurningZombie(info);
                 case 108:
                     return new MudZombie(info);
@@ -256,7 +256,7 @@ namespace Server.MirObjects
                     //Common AI: 2 Close attacks
                     return new DarkBeast(info); //Effect 0/1
                 case 113:
-                    return new ArcherGuard(info);
+                    return new ArcherGuard(info); //弓箭手护卫
                 case 114:
                     //Common AI: 1 Close attack with WeakerTeleport
                     return new Mandrill(info);
@@ -313,7 +313,7 @@ namespace Server.MirObjects
                 case 140:
                     return new EarthGolem(info);
                 case 141:
-                    return new TreeGuardian(info);
+                    return new TreeGuardian(info); //树之守护者
                 case 142:
                     return new TreeQueen(info);
                 case 143:
@@ -321,10 +321,10 @@ namespace Server.MirObjects
                 case 144:
                     return new OmaCannibal(info);
                 case 145:
-                    //Common AI: 2 Attacks, 1 Close, 1 Close AOE
+                    //Common AI: 有 2 次攻击，其中 1 次是近战（近距离）攻击，1 次是近距离范围伤害（AOE），Area of Effect 的缩写
                     return new OmaBlest(info);
                 case 146:
-                    //Common AI: 1 Halfmoon Attack
+                    //Common AI: 1 次半月形攻击
                     return new OmaSlasher(info);
                 case 147:
                     return new OmaMage(info);
@@ -349,12 +349,12 @@ namespace Server.MirObjects
                 case 157:
                     return new AxePlant(info);
                 case 158:
-                    //Common AI: None With Attack On Death
+                    //怪物AI：无死亡时攻击效果
                     return new WoodBox(info);
                 case 159:
                     return new DarkCaptain(info);
                 case 160:
-                    //Common AI: 1 Range Attack with Fear
+                    //怪物AI：1 带恐惧效果的范围攻击
                     return new BlueSoul(info);
                 case 161:
                     return new SackWarrior(info);
@@ -379,7 +379,7 @@ namespace Server.MirObjects
                 case 171:
                     return new HornedCommander(info);
 
-                //case 172: MoonSunLightningStone
+                //案例172：日月雷电石
 
                 case 173:
                     return new TurtleGrass(info);
@@ -388,7 +388,7 @@ namespace Server.MirObjects
                 case 175:
                     return new ChieftainArcher(info);
 
-                //case 176: ChieftainSword
+                //案例176：酋长之剑
 
                 case 177:
                     return new FrozenKnight(info);
@@ -444,11 +444,11 @@ namespace Server.MirObjects
                 case 200:
                     return new FurbolgCommander(info);
                 case 201:
-                    return new FurbolgGuard(info);
+                    return new FurbolgGuard(info); //熊怪守卫
                 case 202:
-                    return new GlacierBeast(info);
+                    return new GlacierBeast(info); //冰川巨兽
                 case 203:
-                    return new GlacierWarrior(info);
+                    return new GlacierWarrior(info); //冰川勇士
 
 
 
@@ -570,9 +570,9 @@ namespace Server.MirObjects
                     return new Mon579B(info);
                 case 580:
                     return new Mon580B(info);
-                case 581:
-                case 582:
-                case 584:
+                //case 581:
+                //case 582:
+                //case 584:
                 case 585:
                     return new Mon581D(info);
                 case 590:
@@ -693,7 +693,7 @@ namespace Server.MirObjects
         public long ShockTime, RageTime, HallucinationTime;
         public bool BindingShotCenter, PoisonStopRegen = true;
 
-        protected bool Alone, Stacking;
+        protected bool Alone = false, Stacking = false;
 
         public byte PetLevel;
         public uint PetExperience;
@@ -841,12 +841,12 @@ namespace Server.MirObjects
             RefreshBase();
 
             Stats[Stat.HP] += PetLevel * 20;
-            Stats[Stat.MinAC] += PetLevel * 2;
-            Stats[Stat.MaxAC] += PetLevel * 2;
-            Stats[Stat.MinMAC] += PetLevel * 2;
-            Stats[Stat.MaxMAC] += PetLevel * 2;
-            Stats[Stat.MinDC] += PetLevel;
-            Stats[Stat.MaxDC] += PetLevel;
+            Stats[Stat.最小防御] += PetLevel * 2;
+            Stats[Stat.最大防御] += PetLevel * 2;
+            Stats[Stat.最小魔御] += PetLevel * 2;
+            Stats[Stat.最大魔御] += PetLevel * 2;
+            Stats[Stat.最小攻击] += PetLevel;
+            Stats[Stat.最大攻击] += PetLevel;
 
             if (Info.Name == Settings.SkeletonName || Info.Name == Settings.ShinsuName || Info.Name == Settings.AngelName)
             {
@@ -876,6 +876,7 @@ namespace Server.MirObjects
                 }
             }
         }
+        //根据宠物等级（PetLevel）刷新名字颜色（NameColour）
         public virtual void RefreshNameColour(bool send = true)
         {
             if (ShockTime < Envir.Time) BindingShotCenter = false;
@@ -949,7 +950,7 @@ namespace Server.MirObjects
             BroadcastHealthChange();
         }
 
-        //use this so you can have mobs take no/reduced poison damage
+        //使用这个，这样怪物就能不受/减少中毒伤害
         public virtual void PoisonDamage(int amount, MapObject Attacker)
         {
             ChangeHP(amount);
@@ -1120,7 +1121,7 @@ namespace Server.MirObjects
             {
                 DropInfo drop = Info.Drops[i];
 
-                var reward = drop.AttemptDrop(EXPOwner?.Stats[Stat.物品掉落数率] ?? 0, EXPOwner?.Stats[Stat.金币收益数率] ?? 0);
+                var reward = drop.AttemptDrop(EXPOwner?.Stats[Stat.物品爆率百分比] ?? 0, EXPOwner?.Stats[Stat.金币爆率百分比] ?? 0);
 
                 if (reward != null)
                 {
@@ -1690,6 +1691,12 @@ namespace Server.MirObjects
 
             AloneTime = Envir.Time + AloneDelay;
 
+            if (Route.Count > 0) //允许闲置的怪物在有路线时继续漫游
+            {
+                Alone = false;
+                return;
+            }
+
             if (CurrentMap.Players.Count == 0)
             {
                 Alone = true;
@@ -2065,7 +2072,7 @@ namespace Server.MirObjects
             ActionTime = Envir.Time + 300;
             AttackTime = Envir.Time + AttackSpeed;
 
-            int damage = GetAttackPower(Stats[Stat.MinDC], Stats[Stat.MaxDC]);
+            int damage = GetAttackPower(Stats[Stat.最小攻击], Stats[Stat.最大攻击]);
             if (damage == 0) return;
 
             DelayedAction action = new DelayedAction(DelayedType.Damage, Envir.Time + 300, Target, damage, DefenceType.ACAgility);
@@ -2366,22 +2373,22 @@ namespace Server.MirObjects
             if (Dead || attacker == this) return false;
             if (attacker.Race == ObjectType.Creature) return false;
 
-            if (attacker.Info.AI == 980 || attacker.Info.AI == 982)
+            if (attacker.Info.AI == 6 || attacker.Info.AI == 113) // 守卫
             {
-                if (Info.AI != 160 && Info.AI != 161 && Info.AI != 971 && (Master == null || Master.PKPoints >= 200)) //Not Dear/Hen/Tree/Pets or Red Master 
+                if (Info.AI != 1 && Info.AI != 2 && Info.AI != 3 && (Master == null || Master.PKPoints >= 200)) //Not Dear/Hen/Tree/Pets or Red Master 
                     return true;
             }
-            else if (attacker.Info.AI == 981)
+            else if (attacker.Info.AI == 58) // Tao Guard 大刀守卫- attacks Pets 攻击宠物
             {
-                if (Info.AI != 160 && Info.AI != 161 && Info.AI != 971 && (Master == null || Master.AMode != AttackMode.Peace)) //Not Dear/Hen/Tree or Peaceful Master
+                if (Info.AI != 1 && Info.AI != 2 && Info.AI != 3 && (Master == null || Master.AMode != AttackMode.Peace)) //Not Dear/Hen/Tree or Peaceful Master
                     return true;
             }
-            else if (Master != null) //Pet Attacked
+            else if (Master != null) //宠物被攻击
             {
                 if (attacker.Master == null) //Wild Monster
                     return true;
 
-                //Pet Vs Pet
+                //宠物对战宠物
                 if (Master == attacker.Master)
                     return false;
 
@@ -2417,7 +2424,7 @@ namespace Server.MirObjects
 
                 return Master.LastHitter == attacker.Master;
             }
-            else if (attacker.Master != null) //Pet Attacking Wild Monster
+            else if (attacker.Master != null) //宠物攻击野生怪物
             {
                 if (Envir.Time < ShockTime) //Shocked
                     return false;
@@ -2481,7 +2488,7 @@ namespace Server.MirObjects
 
             if (damageWeapon)
                 attacker.DamageWeapon();
-            damage += attacker.Stats[Stat.攻击增伤];
+            damage += attacker.Stats[Stat.功力];
 
             if (armour >= damage)
             {
@@ -2489,7 +2496,7 @@ namespace Server.MirObjects
                 return 0;
             }
 
-            if (Envir.Random.Next(100) < (attacker.Stats[Stat.暴击倍率] * Settings.CriticalRateWeight))
+            if (Envir.Random.Next(100) < (attacker.Stats[Stat.暴击率] * Settings.CriticalRateWeight))
             {
                 Broadcast(new S.ObjectEffect { ObjectID = ObjectID, Effect = SpellEffect.Critical });
                 damage = Math.Min(int.MaxValue, damage + (int)Math.Floor(damage * (attacker.Stats[Stat.暴击伤害] / (double)Settings.CriticalDamageWeight * 10)));
@@ -2536,9 +2543,9 @@ namespace Server.MirObjects
 
             Broadcast(new S.ObjectStruck { ObjectID = ObjectID, AttackerID = attacker.ObjectID, Direction = Direction, Location = CurrentLocation });
 
-            if (attacker.Stats[Stat.吸血数率] > 0 && damageWeapon)
+            if (attacker.Stats[Stat.吸血] > 0 && damageWeapon)
             {
-                attacker.HpDrain += Math.Max(0, ((float)(damage - armour) / 100) * attacker.Stats[Stat.吸血数率]);
+                attacker.HpDrain += Math.Max(0, ((float)(damage - armour) / 100) * attacker.Stats[Stat.吸血]);
                 if (attacker.HpDrain > 2)
                 {
                     int hpGain = (int)Math.Floor(attacker.HpDrain);
@@ -2558,7 +2565,7 @@ namespace Server.MirObjects
                     if (player != null && player.CurrentMap == attacker.CurrentMap && Functions.InRange(player.CurrentLocation, attacker.CurrentLocation, Globals.DataRange) && !player.Dead)
                     {
                         if (GroupMembers != null && GroupMembers.Contains(player))
-                            damage += (int)Math.Round((double)(damage * attacker.Stats[Stat.师徒专享伤害数率]) / 100);
+                            damage += (int)Math.Round((double)(damage * attacker.Stats[Stat.MentorDamageRatePercent]) / 100);
                     }
                 }
             }
@@ -2614,7 +2621,7 @@ namespace Server.MirObjects
                 OperateTime = 0;
             }
 
-            if (attacker.Info.AI == 980 || attacker.Info.AI == 981 || attacker.Info.AI == 982)
+            if (attacker.Info.AI == 6 || attacker.Info.AI == 58 || attacker.Info.AI == 113)
                 EXPOwner = null;
 
             else if (attacker.Master != null)
@@ -2652,16 +2659,16 @@ namespace Server.MirObjects
             switch (type)
             {
                 case DefenceType.ACAgility:
-                    armour = GetAttackPower(Stats[Stat.MinAC], Stats[Stat.MaxAC]);
+                    armour = GetAttackPower(Stats[Stat.最小防御], Stats[Stat.最大防御]);
                     break;
                 case DefenceType.AC:
-                    armour = GetAttackPower(Stats[Stat.MinAC], Stats[Stat.MaxAC]);
+                    armour = GetAttackPower(Stats[Stat.最小防御], Stats[Stat.最大防御]);
                     break;
                 case DefenceType.MACAgility:
-                    armour = GetAttackPower(Stats[Stat.MinMAC], Stats[Stat.MaxMAC]);
+                    armour = GetAttackPower(Stats[Stat.最小魔御], Stats[Stat.最大魔御]);
                     break;
                 case DefenceType.MAC:
-                    armour = GetAttackPower(Stats[Stat.MinMAC], Stats[Stat.MaxMAC]);
+                    armour = GetAttackPower(Stats[Stat.最小魔御], Stats[Stat.最大魔御]);
                     break;
                 case DefenceType.Agility:
                     break;
@@ -2690,7 +2697,7 @@ namespace Server.MirObjects
 
             if (!ignoreDefence && (p.PType == PoisonType.Green))
             {
-                int armour = GetAttackPower(Stats[Stat.MinMAC], Stats[Stat.MaxMAC]);
+                int armour = GetAttackPower(Stats[Stat.最小魔御], Stats[Stat.最大魔御]);
 
                 if (p.Value < armour)
                     p.PType = PoisonType.None;
@@ -3040,6 +3047,7 @@ namespace Server.MirObjects
                         for (int b = -Globals.DataRange; b <= Globals.DataRange; b++)
                         {
                             int x = CurrentLocation.X + b;
+                            if (x < 0 || x >= CurrentMap.Width) continue;
                             if (x < 0 || x >= CurrentMap.Width) continue;
 
                             Cell cell = CurrentMap.GetCell(x, y);
@@ -3422,9 +3430,9 @@ namespace Server.MirObjects
         // MONSTER AI ATTACKS \\\
         protected virtual void PoisonTarget(MapObject target, int chanceToPoison, long poisonDuration, PoisonType poison, long poisonTickSpeed = 1000, bool noResist = false, bool ignoreDefence = true)
         {
-            int value = GetAttackPower(Stats[Stat.MinSC], Stats[Stat.MaxSC]);
+            int value = GetAttackPower(Stats[Stat.最小道术], Stats[Stat.最大道术]);
 
-            if (Envir.Random.Next(Settings.PoisonResistWeight) >= target.Stats[Stat.毒物躲避])
+            if (Envir.Random.Next(Settings.PoisonResistWeight) >= target.Stats[Stat.毒药抵抗])
             {
                 if (Envir.Random.Next(chanceToPoison) == 0)
                 {
@@ -3691,7 +3699,8 @@ namespace Server.MirObjects
         protected virtual void FullmoonAttack(int damage, int delay = 500, DefenceType defenceType = DefenceType.ACAgility, int pushDistance = -1, int distance = 1)
         {
             MirDirection dir = Direction;
-            List<MapObject> targets = new List<MapObject>();
+
+            bool pushed = false;
 
             for (int j = 1; j <= distance; j++)
             {
@@ -3706,37 +3715,26 @@ namespace Server.MirObjects
 
                     if (cell.Objects == null) continue;
 
-                    foreach (MapObject ob in cell.Objects)
+                    for (int o = 0; o < cell.Objects.Count; o++)
                     {
+                        MapObject ob = cell.Objects[o];
                         if (ob.Race != ObjectType.Player && ob.Race != ObjectType.Monster && ob.Race != ObjectType.Hero) continue;
                         if (!ob.IsAttackTarget(this)) continue;
-                        targets.Add(ob);
+
+                        if (pushDistance > 0 && !pushed)
+                        {
+                            ob.Pushed(this, Direction, pushDistance);
+                            pushed = true;
+                        }
+
+                        DelayedAction action = new DelayedAction(DelayedType.Damage, Envir.Time + delay, ob, damage, defenceType);
+                        ActionList.Add(action);
+                        break;
                     }
                 }
             }
-
-            foreach (MapObject ob in targets)
-            {
-                MirDirection pushDir;
-
-                if (distance == 1)
-                {
-                    pushDir = Functions.ReverseDirection(dir);
-                }
-                else
-                {
-                    pushDir = Functions.DirectionFromPoint(CurrentLocation, ob.CurrentLocation);
-                }
-
-                if (pushDistance > 0 && !ob.InSafeZone)
-                {
-                    ob.Pushed(this, pushDir, pushDistance);
-                }
-
-                ActionList.Add(new DelayedAction(DelayedType.Damage, Envir.Time + delay, ob, damage, defenceType));
-            }
         }
-    
+
         protected virtual void ProjectileAttack(int damage, DefenceType type = DefenceType.ACAgility, int additionalDelay = 500)
         {
             int delay = Functions.MaxDistance(CurrentLocation, Target.CurrentLocation) * 50 + additionalDelay;

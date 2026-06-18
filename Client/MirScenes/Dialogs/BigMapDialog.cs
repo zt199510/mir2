@@ -202,7 +202,7 @@ namespace Client.MirScenes.Dialogs
 
             SearchTextBox = new MirTextBox
             {
-                Location = new Point(59, Size.Height - 27),
+                Location = new Point(59, Size.Height - 28),
                 Parent = this,
                 Font = new Font(Settings.FontName, 8F),
                 Size = new Size(130, 10),
@@ -218,8 +218,8 @@ namespace Client.MirScenes.Dialogs
             CoordinateLabel = new MirLabel
             {
                 AutoSize = true,
-                ForeColour = Color.White,
-                Location = new Point(519, 435),
+                ForeColour = Color.Yellow, //White
+                Location = new Point(420, 435),
                 Parent = this,
             };
 
@@ -257,7 +257,7 @@ namespace Client.MirScenes.Dialogs
 
         private void MakeCoordinateLabel()
         {
-            CoordinateLabel.Text = $"[ {MouseLocation.X}, {MouseLocation.Y} ]";
+            CoordinateLabel.Text = $"[选择移动至坐标: {MouseLocation.X}, {MouseLocation.Y} ]";
         }
 
         public void ShowCoordinateLabel()
@@ -289,10 +289,19 @@ namespace Client.MirScenes.Dialogs
             var map = GameScene.Scene.MapControl;
             if (map.BigMap <= 0) return;
 
-            SearchTextBox.Enabled = false;
-
             base.Show();
+            SearchTextBox.Visible = this.Visible;
+            if (SearchTextBox.TextBox != null)
+                SearchTextBox.TextBox.Visible = this.Visible;
             TargetMyLocation();
+        }
+
+        public override void Hide()
+        {
+            base.Hide();
+            SearchTextBox.Visible = this.Visible;
+            if (SearchTextBox.TextBox != null)
+                SearchTextBox.TextBox.Visible = this.Visible;
         }
 
         private void TargetMyLocation()
@@ -557,7 +566,7 @@ namespace Client.MirScenes.Dialogs
         public BigMapViewPort()
         {
             NotControl = false;
-            Size = new Size(568, 380);
+            Size = new Size(565, 380);
 
             SelectedNPCIcon = new MirImageControl
             {
@@ -619,7 +628,7 @@ namespace Client.MirScenes.Dialogs
 
             if (path == null || path.Count == 0)
             {
-                GameScene.Scene.ChatDialog.ReceiveChat("目标地点不可用,无适宜的路线", ChatType.System);
+                GameScene.Scene.ChatDialog.ReceiveChat("目标地点不可到达,请选择适宜的路线终点", ChatType.System);
             }
             else
             {
@@ -648,9 +657,9 @@ namespace Client.MirScenes.Dialogs
             MouseMove += UpdateBigMapCoordinates;
 
             Size = Libraries.MiniMap.GetSize(index);
-            Rectangle viewRect = new Rectangle(0, 0, Math.Min(568, Size.Width), Math.Min(380, Size.Height));
+            Rectangle viewRect = new Rectangle(0, 0, Math.Min(565, Size.Width), Math.Min(380, Size.Height));
 
-            viewRect.X = 14 + (568 - viewRect.Width) / 2;
+            viewRect.X = 14 + (565 - viewRect.Width) / 2;
             viewRect.Y = 52 + (380 - viewRect.Height) / 2;
 
             Location = viewRect.Location;
@@ -743,6 +752,26 @@ namespace Client.MirScenes.Dialogs
                         Players[i].Visible = false;
                     }
                 }
+
+                // ====== 自动寻路路径绘制 begin ======
+                // 路径点来源于 map.CurrentPath，绘制红色线段
+                if (map.CurrentPath != null && map.CurrentPath.Count > 1)
+                {
+                    for (int i = 1; i < map.CurrentPath.Count; i++)
+                    {
+                        var prev = map.CurrentPath[i - 1];
+                        var curr = map.CurrentPath[i];
+
+                        float prevX = ((prev.Location.X - startPointX) * ScaleX) + DisplayLocation.X;
+                        float prevY = ((prev.Location.Y - startPointY) * ScaleY) + DisplayLocation.Y;
+                        float currX = ((curr.Location.X - startPointX) * ScaleX) + DisplayLocation.X;
+                        float currY = ((curr.Location.Y - startPointY) * ScaleY) + DisplayLocation.Y;
+
+                        // 画线段，红色
+                        DrawLineOnBigMap(new Point((int)prevX, (int)prevY), new Point((int)currX, (int)currY), Color.Red, 2);
+                    }
+                }
+                // ====== 自动寻路路径绘制 end ======
             }
             else
             {
@@ -773,6 +802,26 @@ namespace Client.MirScenes.Dialogs
                 var s = Libraries.MapLinkIcon.GetSize(SelectedNPCIcon.Index);
 
                 SelectedNPCIcon.Location = new Point((int)x - s.Width / 2, (int)y - s.Height / 2);
+            }
+        }
+
+        private void DrawLineOnBigMap(Point p1, Point p2, Color color, int width = 2)
+        {
+            // 兼容性实现：用小点模拟线段
+            int dx = Math.Abs(p2.X - p1.X), dy = Math.Abs(p2.Y - p1.Y);
+            int sx = p1.X < p2.X ? 1 : -1, sy = p1.Y < p2.Y ? 1 : -1;
+            int err = dx - dy, e2;
+
+            int x = p1.X, y = p1.Y;
+            while (true)
+            {
+                // 用小矩形点模拟线段
+                DXManager.Draw(DXManager.RadarTexture, new Rectangle(0, 0, width, width), new Vector3(x - width / 2, y - width / 2, 0), color);
+
+                if (x == p2.X && y == p2.Y) break;
+                e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x += sx; }
+                if (e2 < dx) { err += dx; y += sy; }
             }
         }
     }

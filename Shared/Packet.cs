@@ -26,8 +26,8 @@ public abstract class Packet
             p = IsServer ? GetClientPacket(id) : GetServerPacket(id);
             if (p == null)
             {
-                //prevents server from getting stuck in a 'loop' (only on this connection)
-                //if the incomming data is corrupt/invalid > simply remove all data instead of trying to process it over and over again
+                //防止服务器陷入“循环”（仅在此连接上）
+                //如果干扰数据损坏/无效>只需删除所有数据，而不是反复处理
                 extra = new byte[0];
                 return null;
             }
@@ -383,6 +383,20 @@ public abstract class Packet
                 return new C.ItemRentalLockItem();
             case (short)ClientPacketIds.ConfirmItemRental:
                 return new C.ConfirmItemRental();
+            case (short)ClientPacketIds.PlayBgMusic:
+                return new C.PlayBgMusic();
+            case (short)ClientPacketIds.ToggleBgMusic:
+                return new C.ToggleBgMusic();
+            case (short)ClientPacketIds.PullLzPays:
+                return new C.PullLzPays();
+            case (short)ClientPacketIds.Recharge:
+                return new C.Recharge();
+            case (short)ClientPacketIds.PullPickInfos:
+                return new C.PullPickInfos();
+            case (short)ClientPacketIds.UpdateNoPickList:
+                return new C.UpdateNoPickList();
+            case (short)ClientPacketIds.KillPet:
+                return new C.KillPet();
             default:
                 return null;
         }
@@ -942,6 +956,20 @@ public abstract class Packet
                 return new S.InventoryCollating();
             case (short)ServerPacketIds.StorageCollating:
                 return new S.StorageCollating();
+            case (short)ServerPacketIds.PlayBgMusic:
+                return new S.PlayBgMusic();
+            case (short)ServerPacketIds.SetBgMusic:
+                return new S.SetBgMusic();
+            case (short)ServerPacketIds.BgMusicEffect:
+                return new S.BgMusicEffect();
+            case (short)ServerPacketIds.NoPickList:
+                return new S.NoPickList();
+            case (short)ServerPacketIds.PickInfos:
+                return new S.PickInfos();
+            case (short)ServerPacketIds.PullLzPaysResult:
+                return new S.PullLzPaysResult();
+            case (short)ServerPacketIds.RechargeResult:
+                return new S.RechargeResult();
             default:
                 return null;
         }

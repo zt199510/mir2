@@ -40,7 +40,7 @@ namespace Server
         public static string VersionPath = Path.Combine(".", "Mir2.Exe");
         public static bool CheckVersion = true;
         public static List<byte[]> VersionHashes;
-        public static string GMPassword = "@9396399";
+        public static string GMPassword = "@mirserver";
         public static bool Multithreaded = true;
         public static int ThreadLimit = 2;
         public static bool TestServer = false;
@@ -72,6 +72,8 @@ namespace Server
         public static bool StartHTTPService = false;
         public static string HTTPIPAddress = "http://127.0.0.1:5679/";
         public static string HTTPTrustedIPAddress = "127.0.0.1";
+        public static string WebServerIPAddress = "http://127.0.0.1:5680";
+        public static string LzPayServerIPAddress = "http://127.0.0.1:5681";
 
         //Permission
         public static bool AllowNewAccount = true,
@@ -99,6 +101,7 @@ namespace Server
 
         //Game
         public static List<long> ExperienceList = new List<long>();
+        public static List<long> HeroExperienceList = new List<long>();
         public static List<long> OrbsExpList = new List<long>();
         public static List<long> OrbsDefList = new List<long>();
         public static List<long> OrbsDmgList = new List<long>();
@@ -223,7 +226,7 @@ namespace Server
         public static byte RefineItemStatReduce = 15;
         public static int RefineCost = 125;
 
-        public static string RefineOreName = "黑色铁矿石";
+        public static string RefineOreName = "黑铁矿石";
 
         //Marriage Settings
         public static int LoverEXPBonus = 5;
@@ -304,6 +307,9 @@ namespace Server
         //Archive Settings
         public static int ArchiveInactiveCharacterAfterMonths = 12;
         public static int ArchiveDeletedCharacterAfterMonths = 1;
+        public static string PickInfos;
+        public static int ScreenHeight;
+        public static int ScreenWidth;
 
         public static void LoadVersion()
         {
@@ -576,6 +582,7 @@ namespace Server
             LoadNotice();
             LoadWorldMap();
             LoadHeroSettings();
+            LoadPick();
 
             GameLanguage.LoadServerLanguage(Path.Combine(ConfigPath, "Language.ini"));
         }
@@ -819,7 +826,17 @@ namespace Server
                 OrbsDmgList.Add(exp);
             }
         }
+        public static void LoadHeroEXP()
+        {
+            long exp = 100;
+            InIReader reader = new InIReader(Path.Combine(ConfigPath, "HeroExpList.ini"));
 
+            for (int i = 1; i <= 500; i++)
+            {
+                exp = reader.ReadInt64("Exp", "Level" + i, exp);
+                HeroExperienceList.Add(exp);
+            }
+        }
         public static void LoadWorldMap()
         {
             InIReader reader = null;
@@ -1043,7 +1060,7 @@ namespace Server
                 reader.Write("Item" + i.ToString(), "MaxDcStatChance", stat.MaxDcStatChance);
                 reader.Write("Item" + i.ToString(), "MaxDcMaxStat", stat.MaxDcMaxStat);
                 reader.Write("Item" + i.ToString(), "MaxMcChance", stat.MaxMcChance);
-                reader.Write("Item" + i.ToString(), "MaxMcStatChance",  stat.MaxMcStatChance);
+                reader.Write("Item" + i.ToString(), "MaxMcStatChance", stat.MaxMcStatChance);
                 reader.Write("Item" + i.ToString(), "MaxMcMaxStat", stat.MaxMcMaxStat);
                 reader.Write("Item" + i.ToString(), "MaxScChance", stat.MaxScChance);
                 reader.Write("Item" + i.ToString(), "MaxScStatChance", stat.MaxScStatChance);
@@ -1587,6 +1604,14 @@ namespace Server
             reader.Write("Goods", "BuyBackTime", GoodsBuyBackTime);
             reader.Write("Goods", "BuyBackMaxStored", GoodsBuyBackMaxStored);
             reader.Write("Goods", "HideAddedStats", GoodsHideAddedStats);
+        }
+        public static void LoadPick()
+        {
+            if (!File.Exists(Path.Combine(ConfigPath, "Pick.ini")))
+            {
+                return;
+            }
+            PickInfos = File.ReadAllText(Path.Combine(ConfigPath, "Pick.ini"));
         }
 
     }

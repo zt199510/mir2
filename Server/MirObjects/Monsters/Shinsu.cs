@@ -75,7 +75,7 @@ namespace Server.MirObjects.Monsters
             Direction = Functions.DirectionFromPoint(CurrentLocation, Target.CurrentLocation);
             Broadcast(new S.ObjectAttack { ObjectID = ObjectID, Direction = Direction, Location = CurrentLocation });
 
-            int damage = GetAttackPower(Stats[Stat.MinSC], Stats[Stat.MaxSC]);
+            int damage = GetAttackPower(Stats[Stat.最小道术], Stats[Stat.最大道术]);
             if (damage == 0) return;
 
             LineAttack(damage, 2);
@@ -106,7 +106,8 @@ namespace Server.MirObjects.Monsters
                     Poison = CurrentPoison,
                     Hidden = Hidden,
                     Extra = Summoned,
-                };
+                    Buffs = Buffs.Where(d => d.Info.Visible).Select(e => e.Type).ToList()
+            };
         }
     }
 }

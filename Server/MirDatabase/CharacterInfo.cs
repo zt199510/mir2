@@ -1,7 +1,8 @@
-using System.Drawing;
 ﻿using Server.MirEnvir;
 using Server.MirNetwork;
 using Server.MirObjects;
+using System;
+using System.Drawing;
 
 namespace Server.MirDatabase
 {
@@ -77,7 +78,7 @@ namespace Server.MirDatabase
         public List<ItemRentalInformation> RentedItemsToRemove = new List<ItemRentalInformation>();
         public bool HasRentedItem;
         public UserItem CurrentRefine = null;
-        public long CollectTime = 0;
+        public long CollectTime = 0, RefineTimeRemaining = 0;
         public List<UserMagic> Magics = new List<UserMagic>();
         public List<PetInfo> Pets = new List<PetInfo>();
         public List<Buff> Buffs = new List<Buff>();
@@ -105,7 +106,7 @@ namespace Server.MirDatabase
         public int CurrentHeroIndex;
         public bool HeroSpawned;
         public HeroBehaviour HeroBehaviour;
-
+        public List<string> NoPickList = new List<string>();
         public CharacterInfo() { }
 
         public CharacterInfo(ClientPackets.NewCharacter p, MirConnection c)
@@ -316,8 +317,8 @@ namespace Server.MirDatabase
                 Envir.BindItem(CurrentRefine);
             }
 
-            CollectTime = reader.ReadInt64();
-            CollectTime += Envir.Time;
+            RefineTimeRemaining = reader.ReadInt64();
+            CollectTime = Envir.Time + RefineTimeRemaining;
 
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
@@ -380,6 +381,14 @@ namespace Server.MirDatabase
 
             if (version > 100)
                 HeroBehaviour = (HeroBehaviour)reader.ReadByte();
+            if (version > 110)
+            {
+                count = reader.ReadInt32();
+                for (int i = 0; i < count; i++)
+                {
+                    NoPickList.Add(reader.ReadString());
+                }
+            }
         }
 
         public virtual void Save(BinaryWriter writer)
@@ -518,16 +527,12 @@ namespace Server.MirDatabase
                 CurrentRefine.Save(writer);
             }
 
-            if ((CollectTime - Envir.Time) < 0)
-            {
-                CollectTime = 0;
-            }
-            else
-            {
-                CollectTime -= Envir.Time;
-            }
+            RefineTimeRemaining = CollectTime - Envir.Time;
 
-            writer.Write(CollectTime);
+            if (RefineTimeRemaining < 0)
+                RefineTimeRemaining = 0;
+
+            writer.Write(RefineTimeRemaining);
 
             writer.Write(Friends.Count);
             for (int i = 0; i < Friends.Count; i++)
@@ -565,6 +570,11 @@ namespace Server.MirDatabase
             writer.Write(CurrentHeroIndex);
             writer.Write(HeroSpawned);
             writer.Write((byte)HeroBehaviour);
+            writer.Write(NoPickList.Count);
+            for (int i = 0; i < NoPickList.Count; i++)
+            {
+                writer.Write(NoPickList[i]);
+            }
         }
 
         public SelectInfo ToSelectInfo()

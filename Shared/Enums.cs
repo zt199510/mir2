@@ -189,7 +189,8 @@ public enum DefaultNPCType : byte
     OnAcceptQuest,
     OnFinishQuest,
     Daily,
-    Client
+    Client,
+    PickUp
 }
 
 public enum IntelligentCreatureType : byte
@@ -214,7 +215,7 @@ public enum IntelligentCreatureType : byte
     龙宝宝 = 16,
 }
 
-//2 blank mob files
+//2 空白mob文件
 public enum Monster : ushort
 {
     Guard = 0,
@@ -775,7 +776,7 @@ public enum Monster : ushort
     Mon610B = 610,
     //B=Boss D=Door N=Normal P=Peculiar S=Stoned T=Tree
 
-    //Special
+    //特殊类
     EvilMir = 900,
     EvilMirBody = 901,
     DragonStatue = 902,
@@ -783,14 +784,14 @@ public enum Monster : ushort
     HellBomb2 = 904,
     HellBomb3 = 905,
 
-    //Siege
+    //攻城
     Catapult = 940,
     ChariotBallista = 941,
     Ballista = 942,
     Trebuchet = 943,
     CanonTrebuchet = 944,
 
-    //Gates
+    //公会
     SabukGate = 950,
     PalaceWallLeft = 951,
     PalaceWall1 = 952,
@@ -894,11 +895,11 @@ public enum CellAttribute : byte
 
 public enum LightSetting : byte
 {
-    Normal = 0,
-    Dawn = 1,
-    Day = 2,
-    Evening = 3,
-    Night = 4
+    正常 = 0,
+    黎明 = 1,
+    白天 = 2,
+    傍晚 = 3,
+    黑夜 = 4
 }
 
 public enum MirGender : byte
@@ -1503,7 +1504,7 @@ public enum BuffType : byte
     金刚术,
     天上秘术,
 
-    //Monster
+    //怪物技能
     HornedArcherBuff = 50,
     ColdArcherBuff,
     HornedColdArcherBuff,
@@ -1901,6 +1902,13 @@ public enum ServerPacketIds : short
     SendMemberLocation,
     InventoryCollating,
     StorageCollating,
+    PlayBgMusic,
+    SetBgMusic,
+    BgMusicEffect,
+    PullLzPaysResult,
+    RechargeResult,
+    PickInfos,
+    NoPickList,
 }
 
 public enum ClientPacketIds : short
@@ -2055,7 +2063,14 @@ public enum ClientPacketIds : short
     CancelItemRental,
     ItemRentalLockFee,
     ItemRentalLockItem,
-    ConfirmItemRental
+    ConfirmItemRental,
+    PlayBgMusic,
+    ToggleBgMusic,
+    PullLzPays,
+    Recharge,
+    PullPickInfos,
+    UpdateNoPickList,
+    KillPet
 }
 
 public enum ConquestType : byte

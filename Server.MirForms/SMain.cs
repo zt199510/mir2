@@ -22,6 +22,11 @@ namespace Server
             InitializeComponent();
 
             AutoResize();
+
+            // 绑定双击事件
+            LogTextBox.DoubleClick += LogTextBox_DoubleClick;
+            DebugLogTextBox.DoubleClick += DebugLogTextBox_DoubleClick;
+            ChatLogTextBox.DoubleClick += ChatLogTextBox_DoubleClick;
         }
 
         private void AutoResize()
@@ -163,7 +168,19 @@ namespace Server
 
         private void SMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            Envir.Stop();
+            // 弹出确认对话框
+            DialogResult result = MessageBox.Show("确定要关闭服务器吗？", "确认关闭", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            // 如果用户选择“否”，则取消关闭操作
+            if (result == DialogResult.No)
+            {
+                e.Cancel = true;
+            }
+            else
+            {
+                // 如果用户选择“是”，则停止服务器
+                Envir.Stop();
+            }
         }
 
         private void closeServerToolStripMenuItem_Click(object sender, EventArgs e)
@@ -407,7 +424,7 @@ namespace Server
         {
             if (!SMain.Envir.Running)
             {
-                MessageBox.Show("服务器运行必须调整怪物", "注意",
+                MessageBox.Show("服务器须在运行状态才能调整怪物", "警告",
                 MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
                 return;
             }
@@ -464,7 +481,7 @@ namespace Server
             Envir.ReloadLineMessages();
         }
 
-        #region Guild View Tab
+        #region 公会视图选项卡
         public void ProcessGuildViewTab(bool forced = false)
         {
             if (GuildListView.Items.Count != Envir.GuildList.Count || forced == true)
@@ -669,6 +686,42 @@ namespace Server
         private void 触发脚本ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Envir.ReloadLua();
+        }
+
+        private void MonsterListView_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void UpTimeLabel_Click(object sender, EventArgs e)
+        {
+
+        }
+        // 日志窗口双击清空内容（带确认）
+        private void LogTextBox_DoubleClick(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("确定要清空日志内容吗？", "确认清空", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                LogTextBox.Clear();
+            }
+        }
+
+        // 调试窗口双击清空内容（带确认）
+        private void DebugLogTextBox_DoubleClick(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("确定要清空调试内容吗？", "确认清空", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                DebugLogTextBox.Clear();
+            }
+        }
+
+        // 聊天窗口双击清空内容（带确认）
+        private void ChatLogTextBox_DoubleClick(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("确定要清空聊天内容吗？", "确认清空", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                ChatLogTextBox.Clear();
+            }
         }
     }
 }
